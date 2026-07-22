@@ -23,12 +23,12 @@ targets:
     type: application
     platform: iOS
     sources:
-      - path: Sources/PrivateBrowser
+      - brower-antiview-main/Sources/PrivateBrowser
     settings:
       base:
         PRODUCT_NAME: PrivateBrowser
         PRODUCT_BUNDLE_IDENTIFIER: com.privatebrowser.app
-        INFOPLIST_FILE: Sources/PrivateBrowser/Info.plist
+        INFOPLIST_FILE: brower-antiview-main/Sources/PrivateBrowser/Info.plist
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         LD_RUNPATH_SEARCH_PATHS: ["$(inherited)", "@executable_path/Frameworks"]
         MARKETING_VERSION: "2.0"
