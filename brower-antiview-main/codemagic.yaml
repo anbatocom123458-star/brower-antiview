@@ -1,0 +1,47 @@
+workflows:
+  ios-unsigned:
+    name: Build Unsigned IPA
+    instance_type: mac_mini_m1
+    max_build_duration: 30
+    environment:
+      vars:
+        XCODE_SCHEME: "PrivateBrowser"
+    scripts:
+      - name: Install XcodeGen
+        script: |
+          brew install xcodegen 2>/dev/null || true
+      - name: Generate Project
+        script: |
+          xcodegen generate
+      - name: Build Archive
+        script: |
+          xcodebuild -project PrivateBrowser.xcodeproj \
+            -scheme "$XCODE_SCHEME" \
+            -sdk iphoneos \
+            -configuration Release \
+            -archivePath "$CM_BUILD_DIR/PrivateBrowser.xcarchive" \
+            archive \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            DEVELOPMENT_TEAM="" \
+            PRODUCT_BUNDLE_IDENTIFIER="com.privatebrowser.app"
+      - name: Package IPA
+        script: |
+          APP_PATH=$(find "$CM_BUILD_DIR/PrivateBrowser.xcarchive" -name "*.app" -type d | head -n 1)
+          echo "Found app: $APP_PATH"
+          
+          mkdir -p "$CM_BUILD_DIR/Payload"
+          cp -R "$APP_PATH" "$CM_BUILD_DIR/Payload/"
+          
+          cd "$CM_BUILD_DIR"
+          zip -r PrivateBrowser-Unsigned.ipa Payload
+          rm -rf Payload
+          
+          echo "=== IPA ready ==="
+          ls -lh PrivateBrowser-Unsigned.ipa
+          
+          mkdir -p build
+          cp PrivateBrowser-Unsigned.ipa build/
+    artifacts:
+      - build/PrivateBrowser-Unsigned.ipa
