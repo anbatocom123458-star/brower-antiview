@@ -50,6 +50,7 @@ struct ContentView: View {
     @State private var showAbout = false
     @State private var showTabGrid = false
     @State private var showWindowMode = false
+    @State private var showFloatingMode = false
     @State private var showDebugConsole = false
     @State private var showUserscriptEditor = false
     @State private var showDownloadPanel = false
@@ -228,7 +229,13 @@ struct ContentView: View {
                 onOpenDeveloperTools: {
                     showDeveloperTools = true
                 },
-                currentWindowMode: windowMode
+                onToggleFloatingMode: {
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                        showFloatingMode = true
+                    }
+                },
+                currentWindowMode: windowMode,
+                currentFloatingMode: showFloatingMode
             )
         }
         .sheet(isPresented: $showAbout) {
@@ -261,6 +268,19 @@ struct ContentView: View {
                 blockAds: blockAds,
                 desktopMode: desktopMode,
                 hapticsEnabled: hapticsEnabled
+            )
+        }
+        .fullScreenCover(isPresented: $showFloatingMode) {
+            FloatingModeView(
+                tabsManager: tabsManager,
+                floatingManager: floatingManager,
+                zoomManager: zoomManager,
+                blockWebRTC: blockWebRTC,
+                blockIframe: blockIframe,
+                blockAds: blockAds,
+                desktopMode: desktopMode,
+                hapticsEnabled: hapticsEnabled,
+                isPresented: $showFloatingMode
             )
         }
     }

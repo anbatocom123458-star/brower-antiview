@@ -1,5 +1,7 @@
 import SwiftUI
 
+/// Chế độ cửa sổ nổi — hiển thị tab dưới dạng các cửa sổ nhỏ,
+/// giống như trên desktop/laptop, có dock ở dưới cùng và hình nền máy tính.
 struct FloatingModeView: View {
     @ObservedObject var tabsManager: TabsManager
     @ObservedObject var floatingManager: FloatingWindowManager
@@ -13,10 +15,12 @@ struct FloatingModeView: View {
 
     var body: some View {
         ZStack {
-            backgroundGradient
+            // Hình nền desktop-style
+            desktopBackground
 
+            // Các cửa sổ nổi
             ForEach(tabsManager.tabs) { tab in
-                if tab.isFloating {
+                if tab.isFloating && !tab.isMinimizedToDock {
                     FloatingWindowView(
                         tab: tab,
                         floatingManager: floatingManager,
@@ -31,6 +35,7 @@ struct FloatingModeView: View {
                 }
             }
 
+            // Dock ở dưới
             FloatingDockView(
                 tabsManager: tabsManager,
                 floatingManager: floatingManager,
@@ -55,11 +60,81 @@ struct FloatingModeView: View {
         }
     }
 
-    private var backgroundGradient: some View {
-        LinearGradient(
-            colors: [Color(hex: "0A0A1A"), Color(hex: "12122B")],
-            startPoint: .top, endPoint: .bottom
-        )
+    // MARK: - Desktop Background
+
+    private var desktopBackground: some View {
+        ZStack {
+            // Gradient nền chính
+            LinearGradient(
+                colors: [
+                    Color(red: 0.05, green: 0.05, blue: 0.15),
+                    Color(red: 0.08, green: 0.06, blue: 0.20),
+                    Color(red: 0.10, green: 0.08, blue: 0.25)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+
+            // Các vòng sáng trang trí
+            GeometryReader { geo in
+                // Vòng sáng lớn trên trái
+                RadialGradient(
+                    colors: [
+                        Color.cyan.opacity(0.08),
+                        Color.blue.opacity(0.04),
+                        Color.clear
+                    ],
+                    center: UnitPoint(x: 0.2, y: 0.3),
+                    startRadius: 0,
+                    endRadius: geo.size.width * 0.6
+                )
+
+                // Vòng sáng phải
+                RadialGradient(
+                    colors: [
+                        Color.purple.opacity(0.06),
+                        Color.pink.opacity(0.03),
+                        Color.clear
+                    ],
+                    center: UnitPoint(x: 0.8, y: 0.6),
+                    startRadius: 0,
+                    endRadius: geo.size.width * 0.5
+                )
+
+                // Vòng sáng dưới
+                RadialGradient(
+                    colors: [
+                        Color.cyan.opacity(0.05),
+                        Color.clear
+                    ],
+                    center: UnitPoint(x: 0.5, y: 0.9),
+                    startRadius: 0,
+                    endRadius: geo.size.width * 0.4
+                )
+            }
+
+            // Grid line subtle
+            GeometryReader { geo in
+                Path { path in
+                    let spacing: CGFloat = 60
+                    // Vertical lines
+                    var x: CGFloat = 0
+                    while x < geo.size.width {
+                        path.move(to: CGPoint(x: x, y: 0))
+                        path.addLine(to: CGPoint(x: x, y: geo.size.height))
+                        x += spacing
+                    }
+                    // Horizontal lines
+                    var y: CGFloat = 0
+                    while y < geo.size.height {
+                        path.move(to: CGPoint(x: 0, y: y))
+                        path.addLine(to: CGPoint(x: geo.size.width, y: y))
+                        y += spacing
+                    }
+                }
+                .stroke(Color.white.opacity(0.02), lineWidth: 0.5)
+            }
+        }
     }
 
     private func haptic(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {

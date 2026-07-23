@@ -32,7 +32,9 @@ struct MenuView: View {
     var onOpenUserscriptEditor: (() -> Void)?
     var onToggleWindowMode: (() -> Void)?
     var onOpenDeveloperTools: (() -> Void)?
+    var onToggleFloatingMode: (() -> Void)?
     var currentWindowMode: Bool = false
+    var currentFloatingMode: Bool = false
 
     private var searchEngine: SearchEngine {
         SearchEngine(rawValue: searchEngineRaw) ?? .duckduckgo
@@ -163,7 +165,14 @@ struct MenuView: View {
                             get: { currentWindowMode },
                             set: { _ in onToggleWindowMode?() }
                         )) {
-                            SettingRow(icon: "macwindow", tint: .orange, title: "Chế độ Cửa sổ", subtitle: "Hiển thị tab dưới dạng các cửa sổ nhỏ — giống desktop")
+                            SettingRow(icon: "macwindow", tint: .orange, title: "Chế độ Cửa sổ", subtitle: "Hiển thị tab dưới dạng lưới — giống Safari Tab Grid")
+                        }
+
+                        Toggle(isOn: Binding(
+                            get: { currentFloatingMode },
+                            set: { _ in onToggleFloatingMode?() }
+                        )) {
+                            SettingRow(icon: "macwindow.on.rectangle", tint: .cyan, title: "Cửa sổ nổi (Desktop)", subtitle: "Cửa sổ nhỏ có thể kéo — giống máy tính để bàn")
                         }
 
                         Toggle(isOn: $developerToolsEnabled) {
