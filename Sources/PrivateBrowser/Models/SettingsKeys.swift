@@ -16,8 +16,16 @@ enum SettingsKey {
     static let autoDeletePrivateDownloads = "settings.autoDeletePrivateDownloads"
     static let userscriptsEnabled = "settings.userscriptsEnabled"
 
-    // MARK: - New Keys (v3.3)
+    // MARK: - v3.3
     static let restoreSession = "settings.restoreSession"
     static let developerToolsEnabled = "settings.developerToolsEnabled"
     static let brightnessAuto = "settings.brightnessAuto"
+
+    // MARK: - v3.4 Floating Window
+    static let virtualCursorEnabled = "settings.virtualCursorEnabled"
+    static let aspectRatioLocked = "settings.aspectRatioLocked"
+    static let aspectRatioPreset = "settings.aspectRatioPreset"
+
+    // MARK: - v3.4 Biometric Lock
+    static let biometricLockPrivateTabs = "settings.biometricLockPrivateTabs"
 }

@@ -1,7 +1,10 @@
 import SwiftUI
 
-/// Dock ở dưới cùng trong chế độ cửa sổ — hiển thị nút thoát, thêm tab,
-/// danh sách tab, và các tab đang thu nhỏ.
+/// Dock ở dưới cùng trong chế độ cửa sổ nổi — thiết kế tối giản,
+/// hiệu ứng kính trong suốt (Glassmorphism), groups chức năng gọn gàng.
+///
+/// v3.4: Minimalist design with ultraThinMaterial glass effect,
+/// grouped actions, cleaner tab icons, subtle shadow.
 struct FloatingDockView: View {
     @ObservedObject var tabsManager: TabsManager
     @ObservedObject var floatingManager: FloatingWindowManager
@@ -15,7 +18,7 @@ struct FloatingDockView: View {
 
     @State private var showTabList = false
 
-    private let dockHeight: CGFloat = 70
+    private let dockHeight: CGFloat = 60
 
     var body: some View {
         VStack(spacing: 0) {
@@ -27,37 +30,29 @@ struct FloatingDockView: View {
     // MARK: - Dock Bar
 
     private var dockBar: some View {
-        HStack(spacing: 8) {
-            // Nút thoát
-            dockButton(icon: "xmark.circle", label: "Thoát", color: .red) {
+        HStack(spacing: 6) {
+            // Group 1: Core actions
+            dockIconButton(icon: "xmark.circle.fill", color: .red) {
                 haptic(.medium)
                 onExitFloatingMode()
             }
 
-            // Nút thêm tab mới
-            dockButton(icon: "plus.circle", label: "Tab mới", color: .cyan) {
+            dockIconButton(icon: "plus.circle.fill", color: .cyan) {
                 haptic(.medium)
                 let newTab = tabsManager.openNewTab()
                 floatingManager.addFloatingTab(newTab, in: tabsManager)
             }
 
-            // Nút tab riêng tư
-            dockButton(icon: "eyeglasses", label: "Riêng tư", color: .purple) {
-                haptic(.medium)
-                let newTab = tabsManager.openNewPrivateTab()
-                floatingManager.addFloatingTab(newTab, in: tabsManager)
-            }
+            // Group separator
+            Capsule()
+                .fill(Color.white.opacity(0.12))
+                .frame(width: 1, height: 28)
 
-            // Divider
-            RoundedRectangle(cornerRadius: 1)
-                .fill(Color.white.opacity(0.15))
-                .frame(width: 1, height: 36)
-
-            // Danh sách tab đang mở
+            // Group 2: Tab icons (scrollable)
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 10) {
+                HStack(spacing: 6) {
                     ForEach(tabsManager.tabs) { tab in
-                        DockTabIcon(
+                        DockTabPill(
                             tab: tab,
                             isActive: tab.id == tabsManager.activeTabId,
                             hapticsEnabled: hapticsEnabled
@@ -74,37 +69,31 @@ struct FloatingDockView: View {
                 .padding(.horizontal, 4)
             }
 
-            // Divider
-            RoundedRectangle(cornerRadius: 1)
-                .fill(Color.white.opacity(0.15))
-                .frame(width: 1, height: 36)
+            // Group separator
+            Capsule()
+                .fill(Color.white.opacity(0.12))
+                .frame(width: 1, height: 28)
 
-            // Nút danh sách
-            dockButton(icon: "list.bullet", label: "\(tabsManager.tabCount)", color: .blue) {
+            // Group 3: Info & settings
+            dockIconButton(icon: "list.bullet", color: .blue) {
                 haptic(.light)
                 showTabList = true
             }
-        }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 10)
-        .frame(height: dockHeight)
-        .background(
-            ZStack {
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .fill(.ultraThinMaterial)
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .fill(Color.black.opacity(0.3))
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .stroke(
-                        LinearGradient(
-                            colors: [Color.white.opacity(0.2), Color.white.opacity(0.05)],
-                            startPoint: .top, endPoint: .bottom
-                        ),
-                        lineWidth: 1
-                    )
+
+            // Virtual cursor global toggle
+            dockIconButton(
+                icon: floatingManager.globalVirtualCursorEnabled ? "cursorarrow.click.2" : "cursorarrow",
+                color: floatingManager.globalVirtualCursorEnabled ? .cyan : .white
+            ) {
+                haptic(.light)
+                floatingManager.toggleGlobalVirtualCursor()
             }
-        )
+        }
         .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .frame(height: dockHeight)
+        .background(dockBackground)
+        .padding(.horizontal, 24)
         .padding(.bottom, 8)
         .sheet(isPresented: $showTabList) {
             FloatingTabListView(
@@ -115,19 +104,53 @@ struct FloatingDockView: View {
         }
     }
 
-    // MARK: - Dock Button
+    // MARK: - Glass Background
 
-    private func dockButton(icon: String, label: String, color: Color, action: @escaping () -> Void) -> some View {
+    private var dockBackground: some View {
+        ZStack {
+            // Base glass material
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(.ultraThinMaterial)
+
+            // Subtle dark tint
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(Color.black.opacity(0.25))
+
+            // Top highlight
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [Color.white.opacity(0.12), Color.clear],
+                        startPoint: .top, endPoint: .bottom
+                    )
+                )
+
+            // Border
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(
+                    LinearGradient(
+                        colors: [Color.white.opacity(0.2), Color.white.opacity(0.05)],
+                        startPoint: .top, endPoint: .bottom
+                    ),
+                    lineWidth: 0.5
+                )
+        }
+        .shadow(color: .black.opacity(0.3), radius: 20, y: 8)
+        .shadow(color: .cyan.opacity(0.08), radius: 15, y: 5)
+    }
+
+    // MARK: - Dock Icon Button
+
+    private func dockIconButton(icon: String, color: Color, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            VStack(spacing: 4) {
-                Image(systemName: icon)
-                    .font(.system(size: 22, weight: .semibold))
-                    .foregroundColor(color.opacity(0.9))
-                Text(label)
-                    .font(.system(size: 9, weight: .medium))
-                    .foregroundColor(.white.opacity(0.5))
-            }
-            .frame(width: 50)
+            Image(systemName: icon)
+                .font(.system(size: 20, weight: .semibold))
+                .foregroundColor(color.opacity(0.85))
+                .frame(width: 36, height: 36)
+                .background(
+                    Circle()
+                        .fill(Color.white.opacity(0.06))
+                )
         }
         .buttonStyle(.plain)
     }
@@ -138,53 +161,59 @@ struct FloatingDockView: View {
     }
 }
 
-// MARK: - Dock Tab Icon
+// MARK: - Dock Tab Pill
 
-private struct DockTabIcon: View {
+private struct DockTabPill: View {
     @ObservedObject var tab: BrowserTab
     let isActive: Bool
     let hapticsEnabled: Bool
     let onTap: () -> Void
 
     var body: some View {
-        VStack(spacing: 4) {
+        VStack(spacing: 3) {
             ZStack {
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(
-                        LinearGradient(
-                            colors: isActive
-                                ? [Color.cyan.opacity(0.4), Color.blue.opacity(0.3)]
-                                : [Color.white.opacity(0.12), Color.white.opacity(0.06)],
-                            startPoint: .topLeading, endPoint: .bottomTrailing
+                if isActive {
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(
+                            LinearGradient(
+                                colors: [Color.cyan.opacity(0.35), Color.blue.opacity(0.25)],
+                                startPoint: .topLeading, endPoint: .bottomTrailing
+                            )
                         )
-                    )
+                } else {
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(
+                            LinearGradient(
+                                colors: [Color.white.opacity(0.1), Color.white.opacity(0.04)],
+                                startPoint: .topLeading, endPoint: .bottomTrailing
+                            )
+                        )
+                }
 
                 if tab.controller.isLoading {
                     ProgressView()
                         .tint(.cyan)
-                        .scaleEffect(0.5)
+                        .scaleEffect(0.45)
                 } else {
-                    VStack(spacing: 2) {
-                        Image(systemName: tab.controller.isSecure ? "lock.fill" : "globe")
-                            .font(.system(size: 16))
-                            .foregroundColor(.white.opacity(0.6))
-                    }
+                    Image(systemName: tab.controller.isSecure ? "lock.fill" : "globe")
+                        .font(.system(size: 14))
+                        .foregroundColor(.white.opacity(0.65))
                 }
             }
-            .frame(width: 48, height: 48)
+            .frame(width: 40, height: 40)
             .overlay(
-                RoundedRectangle(cornerRadius: 10)
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
                     .stroke(
-                        isActive ? Color.cyan.opacity(0.7) : Color.clear,
-                        lineWidth: 2
+                        isActive ? Color.cyan.opacity(0.6) : Color.clear,
+                        lineWidth: 1.2
                     )
             )
 
             Text(tab.displayTitle)
-                .font(.system(size: 8, weight: .medium))
-                .foregroundColor(.white.opacity(0.6))
+                .font(.system(size: 7, weight: .medium))
+                .foregroundColor(.white.opacity(0.5))
                 .lineLimit(1)
-                .frame(width: 56)
+                .frame(width: 48)
         }
         .onTapGesture(perform: onTap)
     }

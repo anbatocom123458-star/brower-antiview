@@ -1,8 +1,11 @@
 import Foundation
 import Combine
 
-/// Lưu và khôi phục toàn bộ trạng thái phiên làm việc —包括 tab, settings, và UI state.
-/// Dữ liệu được lưu vào UserDefaults khi app chuyển sang nền và khôi phục khi mở lại.
+/// Lưu và khôi phục toàn bộ trạng thái phiên làm việc —包括 tab, settings, UI state,
+/// vị trí cuộn, thứ tự tab, và trạng thái cửa sổ nổi.
+///
+/// v3.4: Bổ sung lưu scroll position, window position/size, tab order,
+/// và restore session on app launch.
 final class SessionStateManager: ObservableObject {
     @Published var lastSessionURL: String?
     @Published var lastActiveTabId: UUID?
@@ -32,6 +35,14 @@ final class SessionStateManager: ObservableObject {
             var url: String
             var title: String
             var isPrivate: Bool
+            var scrollProgress: Double
+            var windowOrder: Int
+            var isFloating: Bool
+            var floatingPositionX: CGFloat
+            var floatingPositionY: CGFloat
+            var floatingWidth: CGFloat
+            var floatingHeight: CGFloat
+            var aspectRatioRaw: String?
         }
     }
 
@@ -42,12 +53,20 @@ final class SessionStateManager: ObservableObject {
     /// Lưu trạng thái hiện tại vào UserDefaults
     func saveSession(tabsManager: TabsManager) {
         var tabs: [SessionData.TabSnapshot] = []
-        for tab in tabsManager.tabs {
+        for (index, tab) in tabsManager.tabs.enumerated() {
             let snapshot = SessionData.TabSnapshot(
                 id: tab.id,
                 url: tab.controller.urlString,
                 title: tab.controller.pageTitle.isEmpty ? tab.displayHost : tab.controller.pageTitle,
-                isPrivate: tab.isPrivateMode
+                isPrivate: tab.isPrivateMode,
+                scrollProgress: tab.savedScrollProgress,
+                windowOrder: index,
+                isFloating: tab.isFloating,
+                floatingPositionX: tab.floatingPosition.x,
+                floatingPositionY: tab.floatingPosition.y,
+                floatingWidth: tab.floatingSize.width,
+                floatingHeight: tab.floatingSize.height,
+                aspectRatioRaw: tab.aspectRatio?.rawValue
             )
             tabs.append(snapshot)
         }
@@ -73,6 +92,55 @@ final class SessionStateManager: ObservableObject {
 
         lastSessionURL = session.lastURL
         lastActiveTabId = session.activeTabId
+    }
+
+    /// Khôi phục tabs vào TabsManager — gọi từ ContentView.onAppear khi restoreSession = true
+    func restoreTabs(into tabsManager: TabsManager) {
+        guard let data = UserDefaults.standard.data(forKey: storageKey),
+              let session = try? JSONDecoder().decode(SessionData.self, from: data) else {
+            return
+        }
+
+        guard !session.tabs.isEmpty else { return }
+
+        // Xóa tab mặc định
+        tabsManager.closeAll()
+
+        // Tạo lại từng tab từ snapshot
+        for snapshot in session.tabs {
+            let tab: BrowserTab
+            if snapshot.isPrivate {
+                tab = tabsManager.openNewPrivateTab(url: snapshot.url, makeActive: false)
+            } else {
+                tab = tabsManager.openNewTab(url: snapshot.url, makeActive: false)
+            }
+
+            // Khôi phục trạng thái floating window
+            tab.isFloating = snapshot.isFloating
+            tab.floatingPosition = CGPoint(
+                x: snapshot.floatingPositionX,
+                y: snapshot.floatingPositionY
+            )
+            tab.floatingSize = CGSize(
+                width: snapshot.floatingWidth,
+                height: snapshot.floatingHeight
+            )
+            tab.windowOrder = snapshot.windowOrder
+            tab.savedScrollProgress = snapshot.scrollProgress
+
+            // Khôi phục aspect ratio
+            if let ratioRaw = snapshot.aspectRatioRaw {
+                tab.aspectRatio = AspectRatioPreset(rawValue: ratioRaw)
+            }
+        }
+
+        // Select lại tab active trước đó
+        if let activeId = session.activeTabId,
+           let targetTab = tabsManager.tabs.first(where: { $0.id == activeId }) {
+            tabsManager.select(targetTab)
+        } else if let firstTab = tabsManager.tabs.first {
+            tabsManager.select(firstTab)
+        }
     }
 
     /// Lấy snapshot tab đã lưu

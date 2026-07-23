@@ -2,33 +2,16 @@ import SwiftUI
 import UIKit
 
 /// Màn hình chính: thanh địa chỉ + trình duyệt + thanh công cụ + menu riêng + đa tab.
-/// So với bản cũ, logic điều hướng được chuyển hết vào BrowserController để
-/// tránh loop reload, và các cài đặt được đọc qua AppStorage tập trung (SettingsKey).
 ///
-/// Kiến trúc đa tab: TabsManager giữ danh sách BrowserTab, mỗi tab có BrowserController
-/// riêng (URL/lịch sử/tiến trình tải độc lập) nhưng dùng CHUNG cấu hình bảo mật
-/// (blockWebRTC/desktopMode...) và CHUNG một ZoomManager — mỗi tab khác nhau về nội
-/// dung đang xem, không khác nhau về mức độ chặn quảng cáo/WebRTC đang bật.
-///
-/// Riêng CHẾ ĐỘ RIÊNG TƯ (isPrivateMode) là thuộc tính CỦA TỪNG TAB — người dùng mở
-/// một tab Riêng tư riêng biệt (giống Safari), tab đó có viền/nhãn tím rõ ràng để
-/// không bao giờ nhầm lẫn mình đang ở tab nào. Về mặt kỹ thuật, MỌI tab (thường lẫn
-/// riêng tư) đều đã dùng WKWebsiteDataStore.nonPersistent() — nghĩa là không tab nào
-/// lưu cookie/cache xuống đĩa cả; điểm khác biệt của tab Riêng tư chỉ là giao diện
-/// nhắc người dùng rõ ràng hơn, không phải một cơ chế ẩn danh khác về bản chất.
-///
-/// Tất cả WKWebView của mọi tab được giữ SỐNG cùng lúc trong một ZStack (không phải
-/// tạo/huỷ mỗi lần chuyển tab) — tab không active chỉ bị ẩn bằng opacity 0 và tắt
-/// nhận cảm ứng. Điều này giữ đúng trạng thái cuộn/form đang nhập của các tab nền,
-/// giống hành vi tab thật của Safari, đổi lại tốn RAM hơn theo số tab đang mở.
-///
-/// v3.3: Thêm Brightness Control, Developer Tools (F12), Session Restore, Modern UI.
+/// v3.4: Thêm Biometric Lock cho tab riêng tư, Session Restore tự động,
+/// và BlurOverlay khi chưa xác thực.
 struct ContentView: View {
     @StateObject private var tabsManager = TabsManager()
     @StateObject private var zoomManager = ZoomManager()
     @StateObject private var userscriptManager = UserscriptManager.shared
     @StateObject private var downloadManager = DownloadManager.shared
     @StateObject private var floatingManager = FloatingWindowManager()
+    @StateObject private var biometricAuth = BiometricAuthManager.shared
 
     @AppStorage(SettingsKey.blockWebRTC) private var blockWebRTC = true
     @AppStorage(SettingsKey.blockIframe) private var blockIframe = true
@@ -40,6 +23,7 @@ struct ContentView: View {
     @AppStorage(SettingsKey.userscriptsEnabled) private var userscriptsEnabled = true
     @AppStorage(SettingsKey.restoreSession) private var restoreSession = true
     @AppStorage(SettingsKey.developerToolsEnabled) private var developerToolsEnabled = true
+    @AppStorage(SettingsKey.biometricLockPrivateTabs) private var biometricLockPrivateTabs = false
 
     @Environment(\.scenePhase) private var scenePhase
 
@@ -57,6 +41,8 @@ struct ContentView: View {
     @State private var showDeveloperTools = false
     @State private var isBackgrounded = false
     @State private var isScreenCaptured = false
+    @State private var hasRestoredSession = false
+    @State private var showPrivateBlurOverlay = false
 
     private var activeController: BrowserController { tabsManager.activeTab.controller }
     private var isActivePrivate: Bool { activeController.isPrivateMode }
@@ -114,6 +100,25 @@ struct ContentView: View {
                             onDismiss: { activeController.loadError = nil }
                         )
                     }
+
+                    // Private tab blur overlay
+                    if showPrivateBlurOverlay {
+                        PrivateBlurOverlay(
+                            biometricAuth: biometricAuth,
+                            onUnlock: {
+                                withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                                    showPrivateBlurOverlay = false
+                                }
+                            },
+                            onCancel: {
+                                // Đóng tab riêng tư khi hủy xác thực
+                                withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                                    showPrivateBlurOverlay = false
+                                }
+                                tabsManager.closeAllPrivateTabs()
+                            }
+                        )
+                    }
                 }
                 .padding(.horizontal, 6)
                 .padding(.vertical, 6)
@@ -166,15 +171,21 @@ struct ContentView: View {
             }
         }
         .onAppear {
-            // Gán một lần duy nhất: mọi tab (kể cả tab tạo sau này) tự forward về đây
-            // qua cơ chế wiring trong TabsManager.makeTabAndWire.
             tabsManager.onSecretCommand = {
                 isURLFieldFocused = false
                 withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) { showDebugConsole = true }
             }
+
             // Check initial screen capture status
             if let scene = UIApplication.shared.connectedScenes.first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene {
                 isScreenCaptured = scene.screen.isCaptured
+            }
+
+            // Restore session if enabled
+            if restoreSession && !hasRestoredSession {
+                hasRestoredSession = true
+                SessionStateManager.shared.restoreTabs(into: tabsManager)
+                editingText = activeController.urlString
             }
         }
         .onChange(of: scenePhase) { newPhase in
@@ -182,7 +193,6 @@ struct ContentView: View {
                 isBackgrounded = (newPhase != .active)
             }
             if newPhase == .background {
-                // Lưu trạng thái phiên trước khi chuyển sang nền
                 SessionStateManager.shared.saveSession(tabsManager: tabsManager)
                 if autoClearOnBackground {
                     PrivacyManager.clearAllData()
@@ -191,18 +201,17 @@ struct ContentView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: UIScreen.capturedDidChangeNotification)) { _ in
             withAnimation(.easeInOut(duration: 0.15)) {
-                // Use scene-based approach to check screen capture status
                 if let scene = UIApplication.shared.connectedScenes.first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene {
                     isScreenCaptured = scene.screen.isCaptured
                 }
             }
         }
         .onChange(of: tabsManager.activeTabId) { _ in
-            // Chuyển tab -> đồng bộ lại thanh địa chỉ theo URL của tab vừa active,
-            // và đóng zoom panel/bỏ focus ô nhập để tránh trạng thái UI lẫn giữa 2 tab.
             if !isURLFieldFocused {
                 editingText = activeController.urlString
             }
+            // Kiểm tra biometric lock cho tab riêng tư
+            checkBiometricLockForActiveTab()
         }
         .sheet(isPresented: $showMenu) {
             MenuView(
@@ -215,9 +224,10 @@ struct ContentView: View {
                     PrivacyManager.clearAllData()
                     zoomManager.reset()
                     tabsManager.closeAll()
+                    SessionStateManager.shared.clearSavedSession()
                 },
                 onOpenPrivateTab: {
-                    tabsManager.openNewPrivateTab()
+                    openPrivateTabWithAuth()
                 },
                 onOpenUserscriptEditor: {
                     showUserscriptEditor = true
@@ -288,10 +298,57 @@ struct ContentView: View {
         isURLFieldFocused = false
         activeController.navigate(to: editingText)
     }
+
+    // MARK: - Biometric Lock
+
+    private func openPrivateTabWithAuth() {
+        guard biometricLockPrivateTabs else {
+            // Không bật khóa sinh trắc — mở trực tiếp
+            tabsManager.openNewPrivateTab()
+            return
+        }
+
+        biometricAuth.authenticate { success in
+            DispatchQueue.main.async {
+                if success {
+                    biometricAuth.lock() // Reset cho lần tiếp theo
+                    tabsManager.openNewPrivateTab()
+                }
+            }
+        }
+    }
+
+    private func checkBiometricLockForActiveTab() {
+        guard biometricLockPrivateTabs else {
+            showPrivateBlurOverlay = false
+            return
+        }
+
+        guard tabsManager.activeTab.isPrivateMode else {
+            showPrivateBlurOverlay = false
+            return
+        }
+
+        // Hiển thị overlay blur cho tab riêng tư
+        showPrivateBlurOverlay = true
+
+        // Tự động yêu cầu xác thực
+        biometricAuth.authenticate { success in
+            DispatchQueue.main.async {
+                if success {
+                    biometricAuth.lock()
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                        showPrivateBlurOverlay = false
+                    }
+                }
+                // Nếu thất bại, overlay vẫn hiển thị
+            }
+        }
+    }
 }
 
-/// Dải nhãn nhỏ trên cùng nhắc rõ đang ở tab Riêng tư — không thể bỏ sót, không phụ
-/// thuộc người dùng phải nhớ hay tự kiểm tra viền màu.
+// MARK: - Private Mode Banner
+
 private struct PrivateModeBanner: View {
     var body: some View {
         HStack(spacing: 6) {
@@ -304,6 +361,94 @@ private struct PrivateModeBanner: View {
         .padding(.vertical, 6)
         .frame(maxWidth: .infinity)
         .background(Color.purple.opacity(0.35))
+    }
+}
+
+// MARK: - Private Blur Overlay
+
+/// Màn hình mờ che nội dung tab riêng tư khi chưa xác thực sinh trắc học.
+private struct PrivateBlurOverlay: View {
+    @ObservedObject var biometricAuth: BiometricAuthManager
+    var onUnlock: () -> Void
+    var onCancel: () -> Void
+
+    var body: some View {
+        ZStack {
+            // Blur background
+            VisualEffectBlur(style: .systemThinMaterialDark)
+                .ignoresSafeArea()
+
+            VStack(spacing: 20) {
+                Image(systemName: "lock.shield.fill")
+                    .font(.system(size: 48))
+                    .foregroundColor(.purple.opacity(0.8))
+
+                Text("Tab Riêng tư đang khóa")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundColor(.white)
+
+                if let error = biometricAuth.authError {
+                    Text(error)
+                        .font(.system(size: 12))
+                        .foregroundColor(.red.opacity(0.8))
+                        .multilineTextAlignment(.center)
+                }
+
+                Text("Yêu cầu xác thực để xem nội dung")
+                    .font(.system(size: 13))
+                    .foregroundColor(.white.opacity(0.6))
+
+                if biometricAuth.isAuthenticating {
+                    ProgressView()
+                        .tint(.purple)
+                } else {
+                    Button(action: {
+                        biometricAuth.authenticate { success in
+                            if success {
+                                biometricAuth.lock()
+                                onUnlock()
+                            }
+                        }
+                    }) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "faceid")
+                            Text("Xác thực")
+                        }
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 32)
+                        .padding(.vertical, 12)
+                        .background(
+                            Capsule()
+                                .fill(Color.purple.opacity(0.7))
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                Button(action: onCancel) {
+                    Text("Đóng tab")
+                        .font(.system(size: 13))
+                        .foregroundColor(.white.opacity(0.5))
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+}
+
+// MARK: - Visual Effect Blur (UIViewRepresentable)
+
+private struct VisualEffectBlur: UIViewRepresentable {
+    var style: UIBlurEffect.Style
+
+    func makeUIView(context: Context) -> UIVisualEffectView {
+        let blurEffect = UIBlurEffect(style: style)
+        return UIVisualEffectView(effect: blurEffect)
+    }
+
+    func updateUIView(_ uiView: UIVisualEffectView, context: Context) {
+        uiView.effect = UIBlurEffect(style: style)
     }
 }
 

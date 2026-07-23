@@ -2,6 +2,8 @@ import SwiftUI
 
 /// Chế độ cửa sổ nổi — hiển thị tab dưới dạng các cửa sổ nhỏ,
 /// giống như trên desktop/laptop, có dock ở dưới cùng và hình nền máy tính.
+///
+/// v3.4: Thêm virtual cursor global overlay, cập nhật dock integration.
 struct FloatingModeView: View {
     @ObservedObject var tabsManager: TabsManager
     @ObservedObject var floatingManager: FloatingWindowManager
@@ -15,10 +17,10 @@ struct FloatingModeView: View {
 
     var body: some View {
         ZStack {
-            // Hình nền desktop-style
+            // Desktop background
             desktopBackground
 
-            // Các cửa sổ nổi
+            // Floating windows
             ForEach(tabsManager.tabs) { tab in
                 if tab.isFloating && !tab.isMinimizedToDock {
                     FloatingWindowView(
@@ -35,7 +37,7 @@ struct FloatingModeView: View {
                 }
             }
 
-            // Dock ở dưới
+            // Dock
             FloatingDockView(
                 tabsManager: tabsManager,
                 floatingManager: floatingManager,
@@ -64,7 +66,6 @@ struct FloatingModeView: View {
 
     private var desktopBackground: some View {
         ZStack {
-            // Gradient nền chính
             LinearGradient(
                 colors: [
                     Color(red: 0.05, green: 0.05, blue: 0.15),
@@ -75,9 +76,7 @@ struct FloatingModeView: View {
                 endPoint: .bottomTrailing
             )
 
-            // Các vòng sáng trang trí
             GeometryReader { geo in
-                // Vòng sáng lớn trên trái
                 RadialGradient(
                     colors: [
                         Color.cyan.opacity(0.08),
@@ -89,7 +88,6 @@ struct FloatingModeView: View {
                     endRadius: geo.size.width * 0.6
                 )
 
-                // Vòng sáng phải
                 RadialGradient(
                     colors: [
                         Color.purple.opacity(0.06),
@@ -101,7 +99,6 @@ struct FloatingModeView: View {
                     endRadius: geo.size.width * 0.5
                 )
 
-                // Vòng sáng dưới
                 RadialGradient(
                     colors: [
                         Color.cyan.opacity(0.05),
@@ -113,18 +110,16 @@ struct FloatingModeView: View {
                 )
             }
 
-            // Grid line subtle
+            // Subtle grid
             GeometryReader { geo in
                 Path { path in
                     let spacing: CGFloat = 60
-                    // Vertical lines
                     var x: CGFloat = 0
                     while x < geo.size.width {
                         path.move(to: CGPoint(x: x, y: 0))
                         path.addLine(to: CGPoint(x: x, y: geo.size.height))
                         x += spacing
                     }
-                    // Horizontal lines
                     var y: CGFloat = 0
                     while y < geo.size.height {
                         path.move(to: CGPoint(x: 0, y: y))
