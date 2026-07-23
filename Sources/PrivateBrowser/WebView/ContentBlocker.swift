@@ -7,6 +7,7 @@ import WebKit
 enum ContentBlocker {
     private static let identifier = "com.privatebrowser.adblock.v1"
     private static var cachedRuleList: WKContentRuleList?
+    private static var cachedRuleJSON: String?
     private static var isCompiling = false
     private static var pendingHandlers: [(WKContentRuleList?) -> Void] = []
 
@@ -53,9 +54,13 @@ enum ContentBlocker {
         guard !isCompiling else { return }
         isCompiling = true
 
+        if cachedRuleJSON == nil {
+            cachedRuleJSON = buildRuleJSON()
+        }
+
         WKContentRuleListStore.default().compileContentRuleList(
             forIdentifier: identifier,
-            encodedContentRuleList: buildRuleJSON()
+            encodedContentRuleList: cachedRuleJSON
         ) { ruleList, error in
             isCompiling = false
             if let error {

@@ -3,7 +3,7 @@ options:
   bundleIdPrefix: com.privatebrowser
   deploymentTarget:
     iOS: "16.0"
-  xcodeVersion: "26.0"
+  xcodeVersion: "16.0"
   createIntermediateGroups: true
 
 settings:
@@ -31,5 +31,5 @@ targets:
         INFOPLIST_FILE: Sources/PrivateBrowser/Info.plist
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         LD_RUNPATH_SEARCH_PATHS: ["$(inherited)", "@executable_path/Frameworks"]
-        MARKETING_VERSION: "3.1"
+        MARKETING_VERSION: "3.2"
         CURRENT_PROJECT_VERSION: "1"

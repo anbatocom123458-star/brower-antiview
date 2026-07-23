@@ -14,6 +14,8 @@ struct MenuView: View {
     @AppStorage(SettingsKey.autoClearOnBackground) private var autoClearOnBackground = false
     @AppStorage(SettingsKey.hapticsEnabled) private var hapticsEnabled = true
     @AppStorage(SettingsKey.confirmClearData) private var confirmClearData = true
+    @AppStorage(SettingsKey.windowMode) private var windowMode = false
+    @AppStorage(SettingsKey.userscriptsEnabled) private var userscriptsEnabled = true
 
     @State private var showClearConfirm = false
     @State private var showClearedToast = false
@@ -23,6 +25,9 @@ struct MenuView: View {
     var onClearData: () -> Void
     var onNewSession: () -> Void
     var onOpenPrivateTab: () -> Void
+    var onOpenUserscriptEditor: (() -> Void)?
+    var onToggleWindowMode: (() -> Void)?
+    var windowMode: Bool = false
 
     private var searchEngine: SearchEngine {
         SearchEngine(rawValue: searchEngineRaw) ?? .duckduckgo
@@ -97,6 +102,32 @@ struct MenuView: View {
                         }
                     } header: {
                         Text("Trải nghiệm")
+                    }
+                    .listRowBackground(Color.white.opacity(0.04))
+
+                    Section {
+                        Toggle(isOn: $userscriptsEnabled) {
+                            SettingRow(icon: "chevron.left.forwardslash.chevron.right", tint: .green, title: "Userscript Manager", subtitle: "Dán code JS tự chạy trên trang — giống Tampermonkey")
+                        }
+                        if userscriptsEnabled {
+                            Button(action: {
+                                dismiss()
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                                    onOpenUserscriptEditor?()
+                                }
+                            }) {
+                                SettingRow(icon: "doc.text", tint: .cyan, title: "Quản lý Userscripts", subtitle: "Thêm, sửa, xóa script JS")
+                            }
+                        }
+
+                        Toggle(isOn: Binding(
+                            get: { windowMode },
+                            set: { _ in onToggleWindowMode?() }
+                        )) {
+                            SettingRow(icon: "macwindow", tint: .orange, title: "Chế độ Cửa sổ", subtitle: "Hiển thị tab dưới dạng các cửa sổ nhỏ — giống desktop")
+                        }
+                    } header: {
+                        Text("Tiện ích mở rộng")
                     }
                     .listRowBackground(Color.white.opacity(0.04))
 

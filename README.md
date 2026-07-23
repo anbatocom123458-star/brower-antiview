@@ -18,6 +18,14 @@ Trình duyệt web cao cấp kết hợp **Hệ thống bảo vệ quyền riên
 </div>
 
 
+## 🧊 Có gì mới trong phiên bản 3.2:
+- **Tải xuống File (Download Manager)**: Tải file trực tiếp từ trình duyệt — hỗ trợ mọi loại file. File tải về chế độ riêng tư tự động xóa khi hoàn thành. Truy cập qua nút ↓ trên thanh công cụ.
+- **Userscript Manager (giống Tampermonkey)**: Dán code JavaScript tự chạy trên trang web — thay thế cho Chrome Extension trên iOS (giới hạn WKWebView). Hỗ trợ matching URL, chạy lúc Document Start/End, Top frame/All frames.
+- **Chế độ Cửa sổ (Window Mode)**: Hiển thị tab dưới dạng các cửa sổ nhỏ gọn — giống trải nghiệm desktop/laptop. Có dock ở dưới cùng với các nút nhanh: Tab mới, Tab riêng tư, Đóng hết, Cài đặt.
+- **Lưu trữ dữ liệu bền vững**: Dữ liệu duyệt web ở chế độ thường được lưu trữ khi thoát app — không mất dữ liệu giữa các phiên.
+- **Tách tab thường / tab riêng tư**: Quản lý rõ ràng hai loại tab — tab riêng tư hiển thị riêng biệt để tránh nhầm lẫn.
+- **Nâng cấp hiệu năng & ổn định**: Tối ưu bộ nhớ, cải thiện xử lý lỗi, mượt mà hơn khi chuyển tab.
+
 ## 🧊 Có gì mới trong phiên bản 3.1:
 - **Nâng cấp Hiệu ứng Liquid Glass (iOS 26+)**: Tối ưu hóa hiệu ứng kính trong suốt và phản hồi thị giác trên toàn bộ giao diện app (`.glassEffect()`, `GlassEffectContainer`, nút bấm kính `.glass` / `.glassProminent`). Cho trải nghiệm vuốt chạm, khúc xạ ánh sáng sống động và mượt mà tuyệt đối. Tự động rơi về Glassmorphism tương thích hoàn hảo trên các phiên bản iOS cũ hơn (iOS 16–25) mà không gây crash hay lag.
 - **Thêm Tab Riêng Tư & Quản Lý Đa Tab (Tab Grid)**: Hỗ trợ duyệt web đa nhiệm với giao diện quản lý tab lưới trực quan (Tab Grid View). Dễ dàng chuyển đổi, tạo tab riêng tư mới hoặc đóng tất cả tab cùng lúc. Mỗi tab hoạt động độc lập trong môi trường cách ly an toàn.

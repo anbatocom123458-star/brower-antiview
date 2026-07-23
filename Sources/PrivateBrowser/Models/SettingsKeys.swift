@@ -12,4 +12,7 @@ enum SettingsKey {
     static let desktopMode = "settings.desktopMode"
     static let blockAds = "settings.blockAds"
     static let autoClearOnBackground = "settings.autoClearOnBackground"
+    static let windowMode = "settings.windowMode"
+    static let autoDeletePrivateDownloads = "settings.autoDeletePrivateDownloads"
+    static let userscriptsEnabled = "settings.userscriptsEnabled"
 }

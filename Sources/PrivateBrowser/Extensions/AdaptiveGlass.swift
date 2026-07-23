@@ -4,7 +4,6 @@ import SwiftUI
 private struct AdaptiveGlassBackground<S: Shape>: ViewModifier {
     var shape: S
     var tint: Color?
-    var interactive: Bool
     var strokeOpacity: Double
 
     func body(content: Content) -> some View {
@@ -58,10 +57,9 @@ extension View {
     func adaptiveGlass<S: Shape>(
         in shape: S,
         tint: Color? = nil,
-        interactive: Bool = false,
         strokeOpacity: Double = 0.08
     ) -> some View {
-        modifier(AdaptiveGlassBackground(shape: shape, tint: tint, interactive: interactive, strokeOpacity: strokeOpacity))
+        modifier(AdaptiveGlassBackground(shape: shape, tint: tint, strokeOpacity: strokeOpacity))
     }
 
     /// Style nút thích ứng an toàn trên mọi phiên bản iOS

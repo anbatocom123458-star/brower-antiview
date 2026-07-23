@@ -1,7 +1,7 @@
 import SwiftUI
 import UIKit
 
-/// Thanh công cụ dưới cùng: back / forward / reload-stop / tab / zoom / menu riêng.
+/// Thanh công cụ dưới cùng: back / forward / reload-stop / tab / zoom / download / menu riêng.
 struct BottomToolbarView: View {
     @ObservedObject var controller: BrowserController
     @ObservedObject var zoomManager: ZoomManager
@@ -14,6 +14,7 @@ struct BottomToolbarView: View {
     var onToggleZoom: () -> Void
     var onOpenTabs: () -> Void
     var onOpenMenu: () -> Void
+    var onOpenDownloads: () -> Void = {}
 
     var body: some View {
         AdaptiveGlassEffectContainer(spacing: 8) {
@@ -53,6 +54,16 @@ struct BottomToolbarView: View {
                     }
                     .foregroundColor(showZoomPanel ? .cyan : .white.opacity(0.7))
                     .frame(maxWidth: .infinity)
+                }
+
+                Button(action: {
+                    haptic(.light)
+                    onOpenDownloads()
+                }) {
+                    Image(systemName: "arrow.down.circle")
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundColor(.white.opacity(0.7))
+                        .frame(maxWidth: .infinity)
                 }
 
                 Button(action: {

@@ -7,16 +7,18 @@ import UIKit
 /// - Xử lý đầy đủ JS alert/confirm/prompt để trang không bị "treo" khi gọi window.alert.
 /// - Chặn scheme lạ (tel:, mailto:...) bằng cách chuyển cho hệ thống xử lý, không crash.
 /// - Dọn dẹp KVO observer đúng cách trong deinit — tránh rò nhớ.
+/// - Hỗ trợ tải xuống file (WKDownload) và Userscript Manager.
 struct BrowserView: UIViewRepresentable {
     @ObservedObject var controller: BrowserController
     @ObservedObject var zoomManager: ZoomManager
+    @ObservedObject var userscriptManager: UserscriptManager
     var blockWebRTC: Bool
     var blockIframe: Bool
     var blockAds: Bool
     var desktopMode: Bool
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(controller: controller, zoomManager: zoomManager)
+        Coordinator(controller: controller, zoomManager: zoomManager, userscriptManager: userscriptManager)
     }
 
     func makeUIView(context: Context) -> WKWebView {
@@ -25,6 +27,8 @@ struct BrowserView: UIViewRepresentable {
         config.allowsInlineMediaPlayback = true
         config.mediaTypesRequiringUserActionForPlayback = []
         config.defaultWebpagePreferences.allowsContentJavaScript = true
+        // Cho phép download
+        config.allowsExpensiveNetworkAccess = true
 
         let ucc = config.userContentController
         if blockWebRTC {
@@ -50,6 +54,12 @@ struct BrowserView: UIViewRepresentable {
             injectionTime: .atDocumentStart,
             forMainFrameOnly: false
         ))
+
+        // Inject userscripts
+        let userscripts = userscriptManager.userScripts(for: URL(string: controller.urlString) ?? URL(string: "about:blank")!)
+        for script in userscripts {
+            ucc.addUserScript(script)
+        }
 
         let webView = WKWebView(frame: .zero, configuration: config)
         webView.allowsBackForwardNavigationGestures = true
@@ -98,6 +108,7 @@ struct BrowserView: UIViewRepresentable {
     final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate, WKScriptMessageHandler {
         private weak var controller: BrowserController?
         private weak var zoomManager: ZoomManager?
+        private weak var userscriptManager: UserscriptManager?
 
         private var progressObservation: NSKeyValueObservation?
         private var loadingObservation: NSKeyValueObservation?
@@ -110,9 +121,10 @@ struct BrowserView: UIViewRepresentable {
         /// trong mỗi lượt tải trang, tránh loadError bị ghi đè liên tục gây giật UI.
         private var didReportJSErrorForCurrentLoad = false
 
-        init(controller: BrowserController, zoomManager: ZoomManager) {
+        init(controller: BrowserController, zoomManager: ZoomManager, userscriptManager: UserscriptManager) {
             self.controller = controller
             self.zoomManager = zoomManager
+            self.userscriptManager = userscriptManager
         }
 
         /// Bật/tắt bộ chặn quảng cáo & theo dõi (WKContentRuleList) theo cài đặt hiện tại,
@@ -183,6 +195,26 @@ struct BrowserView: UIViewRepresentable {
                 UIApplication.shared.open(url, options: [:], completionHandler: nil)
             }
             decisionHandler(.cancel)
+        }
+
+        /// Kiểm tra response có phải file download không (Content-Disposition: attachment).
+        func webView(_ webView: WKWebView, decidePolicyFor navigationResponse: WKNavigationResponse, decisionHandler: @escaping (WKNavigationResponsePolicy) -> Void) {
+            let response = navigationResponse.response as? HTTPURLResponse
+            let contentDisposition = response?.value(forHTTPHeaderField: "Content-Disposition") ?? ""
+            let contentType = response?.value(forHTTPHeaderField: "Content-Type") ?? ""
+
+            // Phát hiện download qua Content-Disposition header
+            if contentDisposition.lowercased().contains("attachment") {
+                if let download = webView.download(navigationResponse) {
+                    let filename = navigationResponse.suggestedFilename ?? "download"
+                    let url = navigationResponse.response.url
+                    controller?.handleDownload(download, fromURL: url, filename: filename)
+                }
+                decisionHandler(.cancel)
+                return
+            }
+
+            decisionHandler(.allow)
         }
 
         func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {

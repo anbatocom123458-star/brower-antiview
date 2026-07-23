@@ -21,9 +21,13 @@ import UIKit
 /// tạo/huỷ mỗi lần chuyển tab) — tab không active chỉ bị ẩn bằng opacity 0 và tắt
 /// nhận cảm ứng. Điều này giữ đúng trạng thái cuộn/form đang nhập của các tab nền,
 /// giống hành vi tab thật của Safari, đổi lại tốn RAM hơn theo số tab đang mở.
+///
+/// v3.2: Thêm Userscript Manager, Download Manager, Window Mode, tách tab thường/riêng tư.
 struct ContentView: View {
     @StateObject private var tabsManager = TabsManager()
     @StateObject private var zoomManager = ZoomManager()
+    @StateObject private var userscriptManager = UserscriptManager.shared
+    @StateObject private var downloadManager = DownloadManager.shared
 
     @AppStorage(SettingsKey.blockWebRTC) private var blockWebRTC = true
     @AppStorage(SettingsKey.blockIframe) private var blockIframe = true
@@ -31,6 +35,8 @@ struct ContentView: View {
     @AppStorage(SettingsKey.desktopMode) private var desktopMode = false
     @AppStorage(SettingsKey.hapticsEnabled) private var hapticsEnabled = true
     @AppStorage(SettingsKey.autoClearOnBackground) private var autoClearOnBackground = false
+    @AppStorage(SettingsKey.windowMode) private var windowMode = false
+    @AppStorage(SettingsKey.userscriptsEnabled) private var userscriptsEnabled = true
 
     @Environment(\.scenePhase) private var scenePhase
 
@@ -40,9 +46,12 @@ struct ContentView: View {
     @State private var showMenu = false
     @State private var showAbout = false
     @State private var showTabGrid = false
+    @State private var showWindowMode = false
     @State private var showDebugConsole = false
+    @State private var showUserscriptEditor = false
+    @State private var showDownloadPanel = false
     @State private var isBackgrounded = false
-    @State private var isScreenCaptured = UIScreen.main.isCaptured
+    @State private var isScreenCaptured = false
 
     private var activeController: BrowserController { tabsManager.activeTab.controller }
     private var isActivePrivate: Bool { activeController.isPrivateMode }
@@ -76,6 +85,7 @@ struct ContentView: View {
                         BrowserView(
                             controller: tab.controller,
                             zoomManager: zoomManager,
+                            userscriptManager: userscriptManager,
                             blockWebRTC: blockWebRTC,
                             blockIframe: blockIframe,
                             blockAds: blockAds,
@@ -118,14 +128,26 @@ struct ContentView: View {
                     onToggleZoom: { withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) { showZoomPanel.toggle() } },
                     onOpenTabs: {
                         isURLFieldFocused = false
-                        withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) { showTabGrid = true }
+                        if windowMode {
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) { showWindowMode = true }
+                        } else {
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) { showTabGrid = true }
+                        }
                     },
-                    onOpenMenu: { showMenu = true }
+                    onOpenMenu: { showMenu = true },
+                    onOpenDownloads: {
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) { showDownloadPanel = true }
+                    }
                 )
             }
 
             if showZoomPanel {
                 ZoomPanelView(zoomManager: zoomManager, isPresented: $showZoomPanel)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+
+            if showDownloadPanel {
+                DownloadPanelView(downloadManager: downloadManager, isPresented: $showDownloadPanel)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
 
@@ -142,6 +164,10 @@ struct ContentView: View {
                 isURLFieldFocused = false
                 withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) { showDebugConsole = true }
             }
+            // Check initial screen capture status
+            if let scene = UIApplication.shared.connectedScenes.first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene {
+                isScreenCaptured = scene.screen.isCaptured
+            }
         }
         .onChange(of: scenePhase) { newPhase in
             withAnimation(.easeInOut(duration: 0.15)) {
@@ -153,7 +179,10 @@ struct ContentView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: UIScreen.capturedDidChangeNotification)) { _ in
             withAnimation(.easeInOut(duration: 0.15)) {
-                isScreenCaptured = UIScreen.main.isCaptured
+                // Use scene-based approach to check screen capture status
+                if let scene = UIApplication.shared.connectedScenes.first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene {
+                    isScreenCaptured = scene.screen.isCaptured
+                }
             }
         }
         .onChange(of: tabsManager.activeTabId) { _ in
@@ -177,7 +206,14 @@ struct ContentView: View {
                 },
                 onOpenPrivateTab: {
                     tabsManager.openNewPrivateTab()
-                }
+                },
+                onOpenUserscriptEditor: {
+                    showUserscriptEditor = true
+                },
+                onToggleWindowMode: {
+                    windowMode.toggle()
+                },
+                windowMode: windowMode
             )
         }
         .sheet(isPresented: $showAbout) {
@@ -186,12 +222,27 @@ struct ContentView: View {
         .sheet(isPresented: $showDebugConsole) {
             DebugConsoleView(tabsManager: tabsManager)
         }
+        .sheet(isPresented: $showUserscriptEditor) {
+            UserscriptEditorView(userscriptManager: userscriptManager)
+        }
         .fullScreenCover(isPresented: $showTabGrid) {
             TabGridView(
                 tabsManager: tabsManager,
                 isPresented: $showTabGrid,
                 hapticsEnabled: hapticsEnabled,
                 onOpenNewTab: { tabsManager.openNewTab() }
+            )
+        }
+        .fullScreenCover(isPresented: $showWindowMode) {
+            WindowModeView(
+                tabsManager: tabsManager,
+                zoomManager: zoomManager,
+                isPresented: $showWindowMode,
+                blockWebRTC: blockWebRTC,
+                blockIframe: blockIframe,
+                blockAds: blockAds,
+                desktopMode: desktopMode,
+                hapticsEnabled: hapticsEnabled
             )
         }
     }

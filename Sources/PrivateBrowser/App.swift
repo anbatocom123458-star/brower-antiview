@@ -15,8 +15,7 @@ struct PrivateBrowserApp: App {
 
     /// Đăng ký giá trị mặc định cho các cờ bảo vệ quyền riêng tư ngay khi app khởi động,
     /// để lần chạy đầu tiên các bộ lọc (WebRTC, iframe, quảng cáo...) đã ở trạng thái
-    /// bật sẵn — tránh trường hợp UserDefaults trả về `false` mặc định trước khi người
-    /// dùng mở Menu lần đầu.
+    /// bật sẵn — tránh trường hợp UserDefaults trả về `false` mặc định trước khi 
     private func registerDefaultSettingsIfNeeded() {
         UserDefaults.standard.register(defaults: [
             SettingsKey.blockWebRTC: true,

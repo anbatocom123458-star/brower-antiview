@@ -8,13 +8,15 @@ struct AboutView: View {
     private let features: [(icon: String, title: String, detail: String)] = [
         ("eye.slash.fill", "Chế độ riêng tư tuyệt đối", "Không cache, không cookie, không lịch sử — mỗi phiên là một khởi đầu mới."),
         ("wifi.slash", "Chống rò IP & WebRTC", "Chặn WebRTC, GeoLocation, Battery API để hạn chế lộ vị trí và địa chỉ IP thật."),
-        ("fingerprint", "Chống dấu vân tay nâng cao", "Giả lập Canvas, WebGL, Audio, múi giờ, phần cứng khai báo — giảm khả năng bị nhận diện qua nhiều trang."),
         ("shield.slash", "Chặn quảng cáo & trình theo dõi", "Chặn ở tầng network bằng WKContentRuleList, tự dọn tham số theo dõi trong URL."),
         ("rectangle.slash", "Chặn iframe theo dõi", "Tự động dọn sạch iframe ẩn/quảng cáo được chèn vào trang."),
         ("record.circle", "Tự ẩn khi bị ghi màn hình", "Phát hiện quay/chụp màn hình và App Switcher, tự động che nội dung ngay lập tức."),
         ("arrow.triangle.2.circlepath", "Phiên mới & tự xoá khi rời app", "Một chạm để bắt đầu lại sạch sẽ, hoặc tự xoá dữ liệu khi chuyển sang app khác."),
         ("sparkles", "Liquid Glass trên iOS 26", "Giao diện kính lỏng mới của Apple, tự thích ứng và vẫn đẹp trên iOS 16 trở lên."),
         ("magnifyingglass", "Zoom linh hoạt 25%–200%", "Điều chỉnh cỡ chữ/trang bằng thanh trượt trực quan, mượt mà."),
+        ("arrow.down.circle", "Tải xuống file", "Tải file trực tiếp từ trình duyệt. File ở chế độ riêng tư tự động xóa khi tải xong."),
+        ("chevron.left.forwardslash.chevron.right", "Userscript Manager", "Dán code JS tự chạy trên trang — giống Tampermonkey trên iOS."),
+        ("macwindow", "Chế độ Cửa sổ", "Quản lý tab dưới dạng các cửa sổ nhỏ — giống trải nghiệm desktop."),
     ]
 
     var body: some View {

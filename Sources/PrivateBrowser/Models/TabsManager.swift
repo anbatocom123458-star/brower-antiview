@@ -6,6 +6,8 @@ import Combine
 /// ContentView giờ luôn hiển thị `activeTab.controller`, còn TabsManager lo việc
 /// tạo/đóng/chuyển tab và đảm bảo luôn có ít nhất 1 tab tồn tại (không bao giờ để
 /// app rơi vào trạng thái 0 tab, tránh phải xử lý màn hình rỗng đặc biệt).
+///
+/// v3.2: Hỗ trợ tách riêng tab thường / tab riêng tư, và chế độ cửa sổ (window mode).
 final class TabsManager: ObservableObject {
     @Published private(set) var tabs: [BrowserTab]
     @Published private(set) var activeTabId: UUID
@@ -31,6 +33,22 @@ final class TabsManager: ObservableObject {
     }
 
     var tabCount: Int { tabs.count }
+
+    /// Danh sách tab thường (không riêng tư)
+    var regularTabs: [BrowserTab] {
+        tabs.filter { !$0.isPrivateMode }
+    }
+
+    /// Danh sách tab riêng tư
+    var privateTabs: [BrowserTab] {
+        tabs.filter { $0.isPrivateMode }
+    }
+
+    /// Số tab thường
+    var regularTabCount: Int { regularTabs.count }
+
+    /// Số tab riêng tư
+    var privateTabCount: Int { privateTabs.count }
 
     /// Tạo tab mới và gán sẵn onSecretCommand forward về closure hiện tại của
     /// TabsManager. Static + nhận closure tường minh để dùng được cả trong init
@@ -116,5 +134,17 @@ final class TabsManager: ObservableObject {
         let replacement = makeTabAndWire(url: BrowserSettingsStore.homeURL, isPrivateMode: false)
         tabs = [replacement]
         activeTabId = replacement.id
+    }
+
+    /// Đóng tất cả tab riêng tư — dùng khi thoát khỏi chế độ riêng tư.
+    func closeAllPrivateTabs() {
+        let privateIds = Set(tabs.filter(\.isPrivateMode).map(\.id))
+        tabs.removeAll { $0.isPrivateMode }
+        if privateIds.contains(activeTabId), let first = tabs.first {
+            activeTabId = first.id
+        }
+        if tabs.isEmpty {
+            closeAll()
+        }
     }
 }

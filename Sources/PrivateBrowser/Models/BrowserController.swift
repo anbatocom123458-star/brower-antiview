@@ -48,7 +48,7 @@ final class BrowserController: ObservableObject {
         }
 
         loadError = nil
-        let formatted = BrowserController.formatInput(raw)
+        let formatted = BrowserController.formatInput(trimmed)
         guard let rawURL = URL(string: formatted) else {
             loadError = "Địa chỉ không hợp lệ. Vui lòng kiểm tra lại."
             return
@@ -105,6 +105,12 @@ final class BrowserController: ObservableObject {
 
     func attach(_ webView: WKWebView) {
         self.webView = webView
+    }
+
+    /// Gọi từ BrowserView.Coordinator khi phát hiện file download.
+    /// Tab riêng tư tự động đánh dấu để file bị xóa khi tải xong.
+    func handleDownload(_ download: WKDownload, fromURL url: URL?, filename: String) {
+        DownloadManager.shared.startDownload(download, fromURL: url, filename: filename, isPrivateMode: isPrivateMode)
     }
 
     /// Chuẩn hoá chuỗi người dùng nhập: URL đầy đủ, domain rút gọn, hoặc từ khoá tìm kiếm.
