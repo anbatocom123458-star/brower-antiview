@@ -1,5 +1,5 @@
 import Foundation
-import WebKit
+@preconcurrency import WebKit
 
 /// Xoá sạch toàn bộ dữ liệu duyệt web: cookie, cache, localStorage, IndexedDB...
 /// cả trong website data store mặc định và store không lưu trữ (nonPersistent)

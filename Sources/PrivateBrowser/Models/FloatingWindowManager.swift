@@ -4,7 +4,6 @@ import Combine
 /// Quản lý các cửa sổ nổi — vị trí, kích thước, thứ tự lớp, và trạng thái dock.
 final class FloatingWindowManager: ObservableObject {
     @Published var isFloatingMode: Bool = false
-    @Published var dockHeight: CGFloat = 90
     @Published var nextWindowOrder: Int = 0
 
     private var cancellables = Set<AnyCancellable>()
@@ -74,7 +73,6 @@ final class FloatingWindowManager: ObservableObject {
         let screen = UIScreen.main.bounds
         let windowWidth: CGFloat = 320
         let windowHeight: CGFloat = 480
-        let dockHeight: CGFloat = 100
         let padding: CGFloat = 24
         let topPadding: CGFloat = 20
 

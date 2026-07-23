@@ -1,5 +1,5 @@
 import SwiftUI
-import WebKit
+@preconcurrency import WebKit
 import Combine
 
 /// Quản lý mức zoom trang web (25% - 200%).

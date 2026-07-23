@@ -1,5 +1,5 @@
 import Foundation
-import WebKit
+@preconcurrency import WebKit
 
 /// Chặn quảng cáo & trình theo dõi ở tầng network bằng WKContentRuleList (định dạng
 /// Content Blocker chuẩn của Safari/WebKit) — hiệu quả và nhẹ hơn nhiều so với chỉ

@@ -54,7 +54,6 @@ struct ContentView: View {
     @State private var showDebugConsole = false
     @State private var showUserscriptEditor = false
     @State private var showDownloadPanel = false
-    @State private var showFloatingMode = false
     @State private var showDeveloperTools = false
     @State private var isBackgrounded = false
     @State private var isScreenCaptured = false

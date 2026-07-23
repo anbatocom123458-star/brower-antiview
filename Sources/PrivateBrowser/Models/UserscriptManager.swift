@@ -1,5 +1,5 @@
 import Foundation
-import WebKit
+@preconcurrency import WebKit
 
 /// Quản lý Userscript — cho phép người dùng dán code JS tự chạy trên trang,
 /// tương tự Tampermonkey nhưng dành cho iOS (giới hạn WKWebView).

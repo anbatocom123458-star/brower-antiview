@@ -1,5 +1,5 @@
 import SwiftUI
-import WebKit
+@preconcurrency import WebKit
 
 /// Developer Tools — tính năng F12 trên máy tính, hiển thị thông tin chi tiết về trang web:
 /// - Thông tin trang (URL, title, meta tags)
@@ -456,5 +456,25 @@ struct ConsoleLog: Identifiable, Codable {
             case .info: return .cyan
             }
         }
+    }
+}
+
+// MARK: - Toast View
+
+private struct ToastView: View {
+    let text: String
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "checkmark.circle.fill")
+                .foregroundColor(.green)
+            Text(text)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundColor(.white)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(.ultraThinMaterial, in: Capsule())
+        .shadow(color: .black.opacity(0.3), radius: 10)
     }
 }

@@ -1,5 +1,5 @@
 import Foundation
-import WebKit
+@preconcurrency import WebKit
 
 /// Quản lý tải xuống file từ WKWebView — hỗ trợ cả chế độ thường (lưu file) và riêng tư (tự xóa).
 final class DownloadManager: NSObject, ObservableObject, WKDownloadDelegate {

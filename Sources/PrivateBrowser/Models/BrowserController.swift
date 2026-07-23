@@ -1,5 +1,5 @@
 import SwiftUI
-import WebKit
+@preconcurrency import WebKit
 import Combine
 
 /// "Bộ não" điều khiển WKWebView — thay cho việc so sánh Binding<String> ở mỗi
@@ -22,7 +22,7 @@ final class BrowserController: ObservableObject {
     /// tố, hoặc quên mất mình vừa tắt bảo vệ giữa một phiên đang nhạy cảm.
     let isPrivateMode: Bool
 
-    fileprivate weak var webView: WKWebView?
+    private(set) weak var webView: WKWebView?
     private var pendingRequest: URLRequest?
 
     /// Được gọi khi người dùng gõ đúng từ khoá bí mật vào thanh địa chỉ (xem
