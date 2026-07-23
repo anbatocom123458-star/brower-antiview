@@ -3,6 +3,7 @@ import SwiftUI
 /// Thanh địa chỉ + thanh tiến trình tải trang.
 struct URLBarView: View {
     @ObservedObject var controller: BrowserController
+    @ObservedObject var privacyReport = PrivacyReport.shared
     @Binding var editingText: String
     @FocusState.Binding var isFocused: Bool
     var onSubmit: () -> Void
@@ -43,6 +44,8 @@ struct URLBarView: View {
                             .foregroundColor(.white.opacity(0.35))
                             .font(.system(size: 15))
                     }
+                } else if privacyReport.totalBlocked > 0 {
+                    AntiTrackerBadge(count: privacyReport.totalBlocked)
                 }
             }
             .padding(.horizontal, 14)
@@ -54,6 +57,34 @@ struct URLBarView: View {
             .padding(.horizontal, 10)
             .padding(.top, 6)
         }
+    }
+}
+
+// MARK: - v4.0 Anti-Tracker Badge
+
+/// Badge nhỏ hiển thị trên thanh URL bar, đếm số tracker/quảng cáo đã chặn real-time.
+private struct AntiTrackerBadge: View {
+    let count: Int
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Image(systemName: "shield.checkered")
+                .font(.system(size: 10, weight: .bold))
+            Text(formatCount(count))
+                .font(.system(size: 11, weight: .bold, design: .rounded))
+        }
+        .foregroundColor(.white)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(
+            Capsule()
+                .fill(Color.green.opacity(0.75))
+        )
+        .accessibilityLabel("\(count) trình theo dõi đã chặn")
+    }
+
+    private func formatCount(_ n: Int) -> String {
+        n >= 1000 ? "\(n / 1000)K+" : "\(n)"
     }
 }
 

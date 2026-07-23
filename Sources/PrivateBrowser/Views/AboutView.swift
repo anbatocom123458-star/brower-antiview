@@ -8,6 +8,8 @@ struct AboutView: View {
     private let features: [(icon: String, title: String, detail: String)] = [
         ("eye.slash.fill", "Chế độ riêng tư tuyệt đối", "Không cache, không cookie, không lịch sử — mỗi phiên là một khởi đầu mới."),
         ("wifi.slash", "Chống rò IP & WebRTC", "Chặn WebRTC, GeoLocation, Battery API để hạn chế lộ vị trí và địa chỉ IP thật."),
+        ("shield.checkered", "Live Anti-Tracker Counter", "Badge real-time trên thanh URL đếm số tracker/quảng cáo đã chặn trong phiên."),
+        ("bolt.fill", "Quick Panic Clear", "Một chạm để đóng toàn bộ tab, xóa cache/cookie và quay về trang Home ngay lập tức."),
         ("shield.slash", "Chặn quảng cáo & trình theo dõi", "Chặn ở tầng network bằng WKContentRuleList, tự dọn tham số theo dõi trong URL."),
         ("rectangle.slash", "Chặn iframe theo dõi", "Tự động dọn sạch iframe ẩn/quảng cáo được chèn vào trang."),
         ("record.circle", "Tự ẩn khi bị ghi màn hình", "Phát hiện quay/chụp màn hình và App Switcher, tự động che nội dung ngay lập tức."),

@@ -16,6 +16,7 @@ struct BottomToolbarView: View {
     var onOpenMenu: () -> Void
     var onOpenDownloads: () -> Void = {}
     var onOpenDeveloperTools: () -> Void = {}
+    var onPanicClear: () -> Void = {}
 
     var body: some View {
         AdaptiveGlassEffectContainer(spacing: 8) {
@@ -74,6 +75,17 @@ struct BottomToolbarView: View {
                     Image(systemName: "wrench.and.screwdriver")
                         .font(.system(size: 18, weight: .semibold))
                         .foregroundColor(.purple.opacity(0.8))
+                        .frame(maxWidth: .infinity)
+                }
+
+                // v4.0 Panic Clear Button
+                Button(action: {
+                    haptic(.heavy)
+                    onPanicClear()
+                }) {
+                    Image(systemName: "bolt.fill")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundColor(.red.opacity(0.9))
                         .frame(maxWidth: .infinity)
                 }
 

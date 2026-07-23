@@ -20,6 +20,8 @@ final class PrivacyReport: ObservableObject {
         totalRequests = UserDefaults.standard.integer(forKey: Keys.totalRequests)
     }
 
+    var totalBlocked: Int { blockedTrackers + blockedAds }
+
     var privacyScore: Int {
         guard totalRequests > 0 else { return 100 }
         let blocked = blockedTrackers + blockedAds

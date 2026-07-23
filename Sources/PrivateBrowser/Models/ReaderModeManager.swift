@@ -126,7 +126,12 @@ final class ReaderModeManager: ObservableObject {
                       let data = jsonString.data(using: .utf8),
                       let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                       let success = json["success"] as? Bool, success else {
-                    self.lastError = json["error"] as? String ?? "Failed to extract content"
+                    if let data = (result as? String)?.data(using: .utf8),
+                       let fallback = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                        self.lastError = fallback["error"] as? String ?? "Failed to extract content"
+                    } else {
+                        self.lastError = "Failed to extract content"
+                    }
                     completion(nil)
                     return
                 }

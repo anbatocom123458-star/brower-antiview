@@ -150,7 +150,8 @@ struct ContentView: View {
                     },
                     onOpenDeveloperTools: {
                         withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) { showDeveloperTools = true }
-                    }
+                    },
+                    onPanicClear: { performPanicClear() }
                 )
             }
 
@@ -297,6 +298,17 @@ struct ContentView: View {
     private func submitURL() {
         isURLFieldFocused = false
         activeController.navigate(to: editingText)
+    }
+
+    // MARK: - v4.0 Panic Clear
+
+    /// Đóng toàn bộ tab, xóa cache/cookies, quay về trang Home trong 0.1s.
+    private func performPanicClear() {
+        tabsManager.closeAll()
+        PrivacyManager.clearAllData {
+            PrivacyReport.shared.reset()
+            self.activeController.goHome()
+        }
     }
 
     // MARK: - Biometric Lock
