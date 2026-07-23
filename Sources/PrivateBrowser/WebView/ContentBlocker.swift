@@ -6,6 +6,7 @@ import Foundation
 /// dùng JavaScript, vì các request bị chặn trước khi tải về, không tốn băng thông.
 enum ContentBlocker {
     private static let identifier = "com.privatebrowser.adblock.v1"
+    private static let queue = DispatchQueue(label: "com.privatebrowser.contentblocker")
     private static var cachedRuleList: WKContentRuleList?
     private static var cachedRuleJSON: String?
     private static var isCompiling = false
@@ -46,30 +47,35 @@ enum ContentBlocker {
     /// Biên dịch (một lần, có cache trong RAM cho phiên hiện tại) và trả về rule list
     /// sẵn sàng để gắn vào `WKUserContentController` của một WKWebView.
     static func ruleList(completion: @escaping (WKContentRuleList?) -> Void) {
-        if let cached = cachedRuleList {
-            completion(cached)
-            return
-        }
-        pendingHandlers.append(completion)
-        guard !isCompiling else { return }
-        isCompiling = true
-
-        if cachedRuleJSON == nil {
-            cachedRuleJSON = buildRuleJSON()
-        }
-
-        WKContentRuleListStore.default().compileContentRuleList(
-            forIdentifier: identifier,
-            encodedContentRuleList: cachedRuleJSON
-        ) { ruleList, error in
-            isCompiling = false
-            if let error {
-                print("⚠️ Không thể biên dịch bộ chặn quảng cáo: \(error.localizedDescription)")
+        queue.sync {
+            if let cached = cachedRuleList {
+                completion(cached)
+                return
             }
-            cachedRuleList = ruleList
-            let handlers = pendingHandlers
-            pendingHandlers = []
-            handlers.forEach { $0(ruleList) }
+            pendingHandlers.append(completion)
+            guard !isCompiling else { return }
+            isCompiling = true
+
+            if cachedRuleJSON == nil {
+                cachedRuleJSON = buildRuleJSON()
+            }
+
+            let json = cachedRuleJSON
+            WKContentRuleListStore.default().compileContentRuleList(
+                forIdentifier: identifier,
+                encodedContentRuleList: json
+            ) { ruleList, error in
+                queue.sync {
+                    isCompiling = false
+                    if let error {
+                        print("⚠️ Không thể biên dịch bộ chặn quảng cáo: \(error.localizedDescription)")
+                    }
+                    cachedRuleList = ruleList
+                    let handlers = pendingHandlers
+                    pendingHandlers = []
+                    handlers.forEach { $0(ruleList) }
+                }
+            }
         }
     }
 }

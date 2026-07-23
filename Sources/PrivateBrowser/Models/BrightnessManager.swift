@@ -15,10 +15,6 @@ final class BrightnessManager: ObservableObject {
     @Published var isAutoBrightness: Bool {
         didSet {
             UserDefaults.standard.set(isAutoBrightness, forKey: Keys.autoBrightness)
-            if isAutoBrightness {
-                // Tắt chế độ tự điều chỉnh để hệ thống quản lý
-                UIScreen.main.brightness = UIScreen.main.brightness
-            }
         }
     }
 
@@ -43,12 +39,6 @@ final class BrightnessManager: ObservableObject {
         } else {
             self.brightness = UIScreen.main.brightness
         }
-    }
-
-    /// Đặt brightness theo giá trị từ 0-100 (dùng cho Slider UI)
-    func setBrightness百分比(_ percent: CGFloat) {
-        let clamped = min(max(percent / 100.0, minBrightness), maxBrightness)
-        brightness = clamped
     }
 
     /// Lấy giá trị brightness dưới dạng phần trăm (0-100)

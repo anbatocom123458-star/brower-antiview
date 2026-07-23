@@ -341,14 +341,24 @@ struct DeveloperToolsView: View {
 
     private func refreshData() {
         isLoading = true
-        fetchPageInfo()
-        fetchPageSource()
-        fetchConsoleLogs()
-        isLoading = false
+        let group = DispatchGroup()
+
+        group.enter()
+        fetchPageInfo { group.leave() }
+
+        group.enter()
+        fetchPageSource { group.leave() }
+
+        group.enter()
+        fetchConsoleLogs { group.leave() }
+
+        group.notify(queue: .main) {
+            self.isLoading = false
+        }
     }
 
-    private func fetchPageInfo() {
-        guard let webView = controller.webView else { return }
+    private func fetchPageInfo(completion: @escaping () -> Void) {
+        guard let webView = controller.webView else { completion(); return }
         var info: [String: String] = [:]
         info["URL"] = controller.urlString
         info["Title"] = controller.pageTitle.isEmpty ? "N/A" : controller.pageTitle
@@ -374,27 +384,30 @@ struct DeveloperToolsView: View {
                     info["Charset"] = json["charset"] ?? "N/A"
                     info["Language"] = json["lang"] ?? "N/A"
                     self.pageInfo = info
+                    completion()
                 }
             } else {
                 DispatchQueue.main.async {
                     self.pageInfo = info
+                    completion()
                 }
             }
         }
     }
 
-    private func fetchPageSource() {
-        guard let webView = controller.webView else { return }
+    private func fetchPageSource(completion: @escaping () -> Void) {
+        guard let webView = controller.webView else { completion(); return }
         let js = "document.documentElement.outerHTML"
         webView.evaluateJavaScript(js) { result, _ in
             DispatchQueue.main.async {
                 self.pageSource = result as? String ?? "Không thể lấy source code"
+                completion()
             }
         }
     }
 
-    private func fetchConsoleLogs() {
-        guard let webView = controller.webView else { return }
+    private func fetchConsoleLogs(completion: @escaping () -> Void) {
+        guard let webView = controller.webView else { completion(); return }
         let js = """
         (function() {
             var logs = [];
@@ -412,6 +425,11 @@ struct DeveloperToolsView: View {
                let logs = try? JSONDecoder().decode([ConsoleLog].self, from: data) {
                 DispatchQueue.main.async {
                     self.consoleLogs = logs
+                    completion()
+                }
+            } else {
+                DispatchQueue.main.async {
+                    completion()
                 }
             }
         }

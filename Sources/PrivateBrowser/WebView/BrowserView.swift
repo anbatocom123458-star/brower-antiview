@@ -77,9 +77,9 @@ struct BrowserView: UIViewRepresentable {
     }
 
     func updateUIView(_ webView: WKWebView, context: Context) {
-        if webView.customUserAgent == nil && desktopMode {
+        if desktopMode {
             webView.customUserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15"
-        } else if webView.customUserAgent != nil && !desktopMode {
+        } else {
             webView.customUserAgent = nil
         }
         context.coordinator.syncAdBlock(enabled: blockAds, webView: webView)
