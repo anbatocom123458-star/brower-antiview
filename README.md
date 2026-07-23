@@ -1,10 +1,22 @@
-# 🛡️ Private Browser iOS — v3.1 
-> **Developed & Maintained with passion by HUÂN NGÔ** 🚀
+<div align="center">
 
-[![Author](https://img.shields.io/badge/Author-Huân%20Ngô-blue?style=for-the-badge&logo=swift)](https://github.com/your-username)
-[![iOS](https://img.shields.io/badge/iOS-16.0%2B-black?style=for-the-badge&logo=apple)](https://apple.com)
+# 🛡️ Private Browser iOS
+### *Định nghĩa lại trải nghiệm duyệt web ẩn danh trên iPhone*
 
-Trình duyệt web ẩn danh & bảo mật cao cấp cho iPhone — **không cần Xcode app, không cần Apple Developer**.
+**Tác giả:** [Huân Ngô](https://github.com/huanngo) 👨‍💻
+
+![iOS 16+](https://img.shields.io/badge/iOS-16.0%2B-blue?logo=apple)
+![Build Status](https://img.shields.io/badge/Build-Passing-brightgreen)
+![License](https://img.shields.io/badge/License-MIT-orange)
+![Xcode Needed](https://img.shields.io/badge/Xcode-Not%20Required-red)
+
+Trình duyệt web cao cấp kết hợp **Hệ thống bảo vệ quyền riêng tư đa lớp**.
+*Không cần máy Mac, không cần Xcode, không tốn $99/năm cho Apple Developer.*
+
+---
+
+</div>
+
 
 ## 🧊 Có gì mới trong phiên bản 3.1:
 - **Nâng cấp Hiệu ứng Liquid Glass (iOS 26+)**: Tối ưu hóa hiệu ứng kính trong suốt và phản hồi thị giác trên toàn bộ giao diện app (`.glassEffect()`, `GlassEffectContainer`, nút bấm kính `.glass` / `.glassProminent`). Cho trải nghiệm vuốt chạm, khúc xạ ánh sáng sống động và mượt mà tuyệt đối. Tự động rơi về Glassmorphism tương thích hoàn hảo trên các phiên bản iOS cũ hơn (iOS 16–25) mà không gây crash hay lag.
