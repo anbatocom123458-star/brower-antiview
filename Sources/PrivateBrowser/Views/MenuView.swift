@@ -27,7 +27,7 @@ struct MenuView: View {
     var onOpenPrivateTab: () -> Void
     var onOpenUserscriptEditor: (() -> Void)?
     var onToggleWindowMode: (() -> Void)?
-    var windowMode: Bool = false
+    var currentWindowMode: Bool = false
 
     private var searchEngine: SearchEngine {
         SearchEngine(rawValue: searchEngineRaw) ?? .duckduckgo
@@ -121,7 +121,7 @@ struct MenuView: View {
                         }
 
                         Toggle(isOn: Binding(
-                            get: { windowMode },
+                            get: { currentWindowMode },
                             set: { _ in onToggleWindowMode?() }
                         )) {
                             SettingRow(icon: "macwindow", tint: .orange, title: "Chế độ Cửa sổ", subtitle: "Hiển thị tab dưới dạng các cửa sổ nhỏ — giống desktop")

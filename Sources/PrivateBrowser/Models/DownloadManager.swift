@@ -2,13 +2,13 @@ import Foundation
 import WebKit
 
 /// Quản lý tải xuống file từ WKWebView — hỗ trợ cả chế độ thường (lưu file) và riêng tư (tự xóa).
-final class DownloadManager: NSObject, ObservableObject, WKDownloadDelegate, URLSessionDownloadDelegate {
+final class DownloadManager: NSObject, ObservableObject, WKDownloadDelegate {
     @Published var activeDownloads: [DownloadItem] = []
     @Published var completedDownloads: [DownloadItem] = []
     @Published var showDownloadPanel = false
 
     private var downloadContinuations: [UUID: WKDownload] = [:]
-    private var downloadDelegates: [UUID: DownloadDelegateHandler] = []
+    private var downloadDelegates: [UUID: DownloadDelegateHandler] = [:]
     private var destinationURLs: [UUID: URL] = [:]
     private let lock = NSLock()
 
@@ -156,6 +156,16 @@ final class DownloadManager: NSObject, ObservableObject, WKDownloadDelegate, URL
         lock.unlock()
         DispatchQueue.main.async {
             self.activeDownloads.removeAll { $0.id == id }
+        }
+    }
+
+    /// Thêm item đã hoàn thành (dùng cho download qua URLSession)
+    func addCompletedItem(_ item: DownloadItem) {
+        DispatchQueue.main.async {
+            self.completedDownloads.append(item)
+            if item.isPrivateMode, let url = item.fileURL {
+                try? FileManager.default.removeItem(at: url)
+            }
         }
     }
 }

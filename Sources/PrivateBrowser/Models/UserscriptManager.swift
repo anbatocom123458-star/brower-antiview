@@ -44,14 +44,14 @@ final class UserscriptManager: ObservableObject {
         scripts.filter { $0.isEnabled && $0.matchesURL(url) }
     }
 
-    /// Tạo WKUserScript từ danh sách script активных cho URL
+    /// Tạo WKUserScript từ danh sách script aktiv cho URL
     func userScripts(for url: URL) -> [WKUserScript] {
-        activeScripts(for: url).compactMap { script in
+        activeScripts(for: url).compactMap { script -> WKUserScript? in
             guard let source = script.source else { return nil }
-            let injectionTime: WKUserScript.InjectionTime = script.runAt == .documentEnd ? .atDocumentEnd : .atDocumentStart
+            let isDocumentEnd = script.runAt == .documentEnd
             return WKUserScript(
                 source: source,
-                injectionTime: injectionTime,
+                injectionTime: isDocumentEnd ? .atDocumentEnd : .atDocumentStart,
                 forMainFrameOnly: script.runInFrames == .top
             )
         }

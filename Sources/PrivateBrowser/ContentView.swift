@@ -213,7 +213,7 @@ struct ContentView: View {
                 onToggleWindowMode: {
                     windowMode.toggle()
                 },
-                windowMode: windowMode
+                currentWindowMode: windowMode
             )
         }
         .sheet(isPresented: $showAbout) {

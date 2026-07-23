@@ -28,7 +28,9 @@ struct BrowserView: UIViewRepresentable {
         config.mediaTypesRequiringUserActionForPlayback = []
         config.defaultWebpagePreferences.allowsContentJavaScript = true
         // Cho phép download
-        config.allowsExpensiveNetworkAccess = true
+        if #available(iOS 17.0, *) {
+            config.allowsExpensiveNetworkAccess = true
+        }
 
         let ucc = config.userContentController
         if blockWebRTC {
@@ -201,14 +203,42 @@ struct BrowserView: UIViewRepresentable {
         func webView(_ webView: WKWebView, decidePolicyFor navigationResponse: WKNavigationResponse, decisionHandler: @escaping (WKNavigationResponsePolicy) -> Void) {
             let response = navigationResponse.response as? HTTPURLResponse
             let contentDisposition = response?.value(forHTTPHeaderField: "Content-Disposition") ?? ""
-            let contentType = response?.value(forHTTPHeaderField: "Content-Type") ?? ""
 
             // Phát hiện download qua Content-Disposition header
             if contentDisposition.lowercased().contains("attachment") {
-                if let download = webView.download(navigationResponse) {
-                    let filename = navigationResponse.suggestedFilename ?? "download"
-                    let url = navigationResponse.response.url
-                    controller?.handleDownload(download, fromURL: url, filename: filename)
+                let filename = response?.value(forHTTPHeaderField: "Content-Disposition")
+                    .flatMap { headerValue in
+                        // Extract filename from Content-Disposition header
+                        let parts = headerValue.components(separatedBy: "filename=")
+                        return parts.last?.trimmingCharacters(in: .whitespacesAndNewlines).trimmingCharacters(in: CharacterSet(charactersIn: "\""))
+                    }
+                    ?? navigationResponse.response.url?.lastPathComponent
+                    ?? "download"
+                let url = navigationResponse.response.url
+
+                // Tải file bằng URLSession thay vì WKDownload (tương thích iOS 18)
+                if let downloadURL = url {
+                    let task = URLSession.shared.downloadTask(with: downloadURL) { tempURL, _, _ in
+                        guard let tempURL else { return }
+                        let destDir = DownloadManager.downloadsDirectory
+                        let destURL = destDir.appendingPathComponent(filename)
+                        try? FileManager.default.removeItem(at: destURL)
+                        try? FileManager.default.moveItem(at: tempURL, to: destURL)
+
+                        DispatchQueue.main.async {
+                            let item = DownloadItem(
+                                id: UUID(),
+                                filename: filename,
+                                url: downloadURL,
+                                isPrivateMode: self.controller?.isPrivateMode ?? false,
+                                startedAt: Date(),
+                                completedAt: Date(),
+                                fileURL: destURL
+                            )
+                            DownloadManager.shared.addCompletedItem(item)
+                        }
+                    }
+                    task.resume()
                 }
                 decisionHandler(.cancel)
                 return
