@@ -1,6 +1,4 @@
-# Private Browser iOS — v3.0 (Liquid Glass + Bảo vệ nâng cao)
 
-Trình duyệt web kín cho iPhone — **không cần Xcode app, không cần Apple Developer**.
 # Private Browser iOS — v3.1 (Liquid Glass + Tab Riêng Tư & Chặn Trình Theo Dõi Nâng Cao)
 
 Trình duyệt web ẩn danh & bảo mật cao cấp cho iPhone — **không cần Xcode app, không cần Apple Developer**.
