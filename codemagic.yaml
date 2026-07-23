@@ -31,9 +31,12 @@ workflows:
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
-            AD_HOC_CODE_SIGNING_ALLOWED=YES \
+            CODE_SIGN_STYLE=Manual \
+            PROVISIONING_PROFILE="" \
+            CODE_SIGN_ENTITLEMENTS="" \
             DEVELOPMENT_TEAM="" \
-            PRODUCT_BUNDLE_IDENTIFIER="com.privatebrowser.app"
+            PRODUCT_BUNDLE_IDENTIFIER="com.privatebrowser.app" \
+            COMPILER_INDEX_STORE_ENABLE=NO
 
       - name: Package IPA
         script: |
