@@ -41,6 +41,32 @@ final class BrowserTab: ObservableObject, Identifiable {
     /// Scroll offset được lưu khi persist session (tỷ lệ 0..1)
     @Published var savedScrollProgress: Double = 0
 
+    // MARK: - Bubble Mode (Mini PiP)
+
+    /// Trạng thái bubble — true khi cửa sổ đã thu nhỏ thành bong bóng
+    @Published var isBubbleMode: Bool = false
+
+    /// Vị trí của bong bóng trên màn hình
+    @Published var bubblePosition: CGPoint = CGPoint(x: 30, y: 300)
+
+    /// Lưu vị trí/kích thước cửa sổ trước khi vào bubble mode để restore
+    @Published var preBubblePosition: CGPoint = .zero
+    @Published var preBubbleSize: CGSize = .zero
+
+    // MARK: - Reader Mode
+
+    /// Reader mode đang bật cho tab này không
+    @Published var isReaderMode: Bool = false
+
+    /// Nội dung article đã trích xuất (reader mode)
+    @Published var readerContent: ReaderContent? = nil
+
+    /// Đang tóm tắt bài viết (AI summary in progress)
+    @Published var isSummarizing: Bool = false
+
+    /// Kết quả tóm tắt
+    @Published var articleSummary: String? = nil
+
     var isPrivateMode: Bool { controller.isPrivateMode }
 
     /// Báo ra ngoài khi tab này phát hiện từ khoá bí mật (termenol.on) — TabsManager

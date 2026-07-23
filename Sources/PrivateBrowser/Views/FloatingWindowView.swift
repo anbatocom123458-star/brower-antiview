@@ -1,11 +1,16 @@
 import SwiftUI
 
-/// Cửa sổ nổi chuẩn Desktop — hỗ trợ kéo di chuyển, resize từ 4 góc/cạnh,
-/// tỉ lệ khung hình, thanh URL điều hướng, và con trỏ ảo.
+/// Cửa sổ nổi chuẩn Desktop — hỗ trợ kéo di chuyển, resize từ mọi góc/cạnh,
+/// tỉ lệ khung hình, thanh URL điều hướng, con trỏ ảo (Trackpad Mode),
+/// chế độ bong bóng (Bubble/PiP), và Reader Mode.
 ///
-/// v3.4: Redesign toàn diện — title bar tích hợp browser controls,
-/// resize handle trên mọi góc/cạnh, virtual cursor overlay,
-/// aspect ratio selector, snap-to-edge khi kéo gần viền.
+/// v4.0: Full floating OS experience:
+/// - WebView fills 100% of window (no gaps)
+/// - Invisible resize handles (drag from any edge/corner)
+/// - Smooth edge clamping (no jitter at screen edges, ignoresSafeArea)
+/// - Virtual cursor toggle moved to Dock (global only)
+/// - Mini Bubble / PiP mode when minimizing
+/// - Reader Mode with AI summary
 struct FloatingWindowView: View {
     @ObservedObject var tab: BrowserTab
     @ObservedObject var floatingManager: FloatingWindowManager
@@ -25,14 +30,21 @@ struct FloatingWindowView: View {
     @State private var editingURL: String = ""
     @State private var isURLEditing: Bool = false
     @State private var showTabSwitcher: Bool = false
+    @State private var showReaderMode = false
+    @State private var showReaderSummary = false
 
     // MARK: - Resize state
-    @State private var resizeEdge: ResizeEdge = .none
+    @State private var activeResizeEdge: ResizeEdge = .none
     @State private var resizeStartSize: CGSize = .zero
     @State private var resizeStartPosition: CGPoint = .zero
 
+    // MARK: - Bubble drag state
+    @State private var bubbleDragOffset: CGSize = .zero
+
     var body: some View {
-        if tab.isMinimizedToDock {
+        if tab.isBubbleMode {
+            bubbleView
+        } else if tab.isMinimizedToDock {
             EmptyView()
         } else {
             floatingWindow
@@ -45,8 +57,11 @@ struct FloatingWindowView: View {
         VStack(spacing: 0) {
             titleBar
             browserToolBar
-            webViewContent
-            resizeHandles
+            if tab.isReaderMode {
+                readerContent
+            } else {
+                webViewContent
+            }
         }
         .frame(width: tab.floatingSize.width, height: tab.floatingSize.height)
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
@@ -60,16 +75,28 @@ struct FloatingWindowView: View {
                 )
         )
         .overlay(
-            // Virtual cursor overlay
+            // Virtual cursor overlay (Trackpad Mode)
             Group {
-                if tab.virtualCursorEnabled || floatingManager.globalVirtualCursorEnabled {
+                if floatingManager.globalVirtualCursorEnabled {
                     VirtualCursorOverlay(
-                        position: $tab.virtualCursorLocalPosition,
+                        cursorPosition: $tab.virtualCursorLocalPosition,
                         windowSize: tab.floatingSize,
-                        hapticsEnabled: hapticsEnabled
+                        hapticsEnabled: hapticsEnabled,
+                        onTap: {
+                            if hapticsEnabled {
+                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                            }
+                        },
+                        onDragStart: { },
+                        onDragChanged: { delta in },
+                        onDragEnd: { }
                     )
                 }
             }
+        )
+        .overlay(
+            // Invisible resize handles on all edges/corners
+            resizeOverlay
         )
         .offset(
             x: tab.floatingPosition.x + dragOffset.width,
@@ -78,6 +105,7 @@ struct FloatingWindowView: View {
         .zIndex(Double(tab.windowOrder))
         .animation(.interactiveSpring(response: 0.3, dampingFraction: 0.8), value: isDragging)
         .animation(.easeInOut(duration: 0.2), value: tab.floatingSize)
+        .ignoresSafeArea(edges: .all)
         .onAppear {
             constrainPosition()
         }
@@ -95,7 +123,7 @@ struct FloatingWindowView: View {
         return Color.white.opacity(0.12)
     }
 
-    // MARK: - Title Bar (macOS-style traffic lights + title + actions)
+    // MARK: - Title Bar
 
     private var titleBar: some View {
         HStack(spacing: 0) {
@@ -109,7 +137,7 @@ struct FloatingWindowView: View {
                 }
                 controlButton(icon: "minus", color: .yellow) {
                     haptic(.light)
-                    floatingManager.minimizeToDock(tab)
+                    floatingManager.minimizeToBubble(tab, allTabs: tabsManager.tabs)
                 }
                 controlButton(icon: "arrow.up.left.and.arrow.down.right", color: .green) {
                     haptic(.light)
@@ -167,6 +195,17 @@ struct FloatingWindowView: View {
                 }
                 .buttonStyle(.plain)
 
+                // Reader mode toggle
+                Button(action: {
+                    haptic(.light)
+                    toggleReaderMode()
+                }) {
+                    Image(systemName: tab.isReaderMode ? "book.fill" : "book")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundColor(tab.isReaderMode ? .orange : .white.opacity(0.6))
+                }
+                .buttonStyle(.plain)
+
                 // Aspect ratio menu
                 Button(action: {
                     haptic(.light)
@@ -185,20 +224,6 @@ struct FloatingWindowView: View {
                         AspectRatioMenu(tab: tab, floatingManager: floatingManager)
                     }
                 }
-
-                // Virtual cursor toggle
-                Button(action: {
-                    haptic(.light)
-                    toggleVirtualCursor()
-                }) {
-                    Image(systemName: "cursorarrow.click.2")
-                        .font(.system(size: 9, weight: .semibold))
-                        .foregroundColor(
-                            (tab.virtualCursorEnabled || floatingManager.globalVirtualCursorEnabled)
-                                ? .cyan : .white.opacity(0.6)
-                        )
-                }
-                .buttonStyle(.plain)
             }
             .padding(.trailing, 12)
         }
@@ -239,14 +264,13 @@ struct FloatingWindowView: View {
         }
     }
 
-    // MARK: - Browser Tool Bar (URL + Navigation)
+    // MARK: - Browser Tool Bar
 
     private var browserToolBar: some View {
         Group {
             if showBrowserBar {
                 VStack(spacing: 0) {
                     HStack(spacing: 6) {
-                        // Navigation buttons
                         navButton(icon: "arrow.left", isEnabled: tab.controller.canGoBack) {
                             tab.controller.goBack()
                         }
@@ -289,7 +313,6 @@ struct FloatingWindowView: View {
                         .background(Color.white.opacity(0.06))
                         .cornerRadius(6)
 
-                        // Reload / Stop
                         navButton(
                             icon: tab.controller.isLoading ? "xmark" : "arrow.clockwise",
                             isEnabled: true
@@ -297,7 +320,6 @@ struct FloatingWindowView: View {
                             tab.controller.isLoading ? tab.controller.stopLoading() : tab.controller.reload()
                         }
 
-                        // Home
                         navButton(icon: "house.fill", isEnabled: true) {
                             tab.controller.goHome()
                         }
@@ -327,18 +349,291 @@ struct FloatingWindowView: View {
             desktopMode: desktopMode
         )
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .clipped()
         .background(Color.black)
     }
 
-    // MARK: - Resize Handles (4 corners + 4 edges)
+    // MARK: - Reader Content View
 
-    private var resizeHandles: some View {
-        ZStack {
-            // Corner handles
-            ResizeCornerHandle(edge: .topLeading, tab: tab, floatingManager: floatingManager)
-            ResizeCornerHandle(edge: .topTrailing, tab: tab, floatingManager: floatingManager)
-            ResizeCornerHandle(edge: .bottomLeading, tab: tab, floatingManager: floatingManager)
-            ResizeCornerHandle(edge: .bottomTrailing, tab: tab, floatingManager: floatingManager)
+    private var readerContent: some View {
+        VStack(spacing: 0) {
+            if tab.isSummarizing {
+                // Loading summary
+                VStack(spacing: 12) {
+                    ProgressView()
+                        .tint(.orange)
+                    Text("Đang tóm tắt bài viết...")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(.white.opacity(0.6))
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color(hex: "1A1A2E"))
+            } else if let summary = tab.articleSummary, showReaderSummary {
+                // Show AI summary
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Image(systemName: "sparkles")
+                                .foregroundColor(.orange)
+                            Text("Tóm tắt bởi AI")
+                                .font(.system(size: 13, weight: .bold))
+                                .foregroundColor(.orange)
+                            Spacer()
+                            Button(action: {
+                                showReaderSummary = false
+                            }) {
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundColor(.white.opacity(0.4))
+                            }
+                            .buttonStyle(.plain)
+                        }
+
+                        Divider().background(Color.white.opacity(0.15))
+
+                        Text(summary)
+                            .font(.system(size: 12, weight: .regular))
+                            .foregroundColor(.white.opacity(0.85))
+                            .lineSpacing(4)
+                    }
+                    .padding(16)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color(hex: "1A1A2E"))
+            } else if let content = tab.readerContent {
+                // Show extracted article
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 12) {
+                        // Article header
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(content.title)
+                                .font(.system(size: 18, weight: .bold))
+                                .foregroundColor(.white)
+
+                            HStack(spacing: 8) {
+                                if !content.author.isEmpty {
+                                    Text(content.author)
+                                        .font(.system(size: 10))
+                                        .foregroundColor(.white.opacity(0.5))
+                                }
+                                if !content.siteName.isEmpty {
+                                    Text("· \(content.siteName)")
+                                        .font(.system(size: 10))
+                                        .foregroundColor(.white.opacity(0.5))
+                                }
+                            }
+
+                            // Summarize button
+                            Button(action: {
+                                summarizeArticle(content)
+                            }) {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "sparkles")
+                                        .font(.system(size: 10))
+                                    Text("Tóm tắt bằng AI")
+                                        .font(.system(size: 10, weight: .semibold))
+                                }
+                                .foregroundColor(.orange)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 5)
+                                .background(
+                                    Capsule()
+                                        .fill(Color.orange.opacity(0.15))
+                                )
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        .padding(.bottom, 8)
+
+                        // Images
+                        ForEach(content.images.prefix(2)) { image in
+                            // Image loading would go here in production
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(Color.white.opacity(0.05))
+                                .frame(height: 120)
+                                .overlay(
+                                    Text("Hình ảnh")
+                                        .font(.system(size: 10))
+                                        .foregroundColor(.white.opacity(0.3))
+                                )
+                        }
+
+                        // Content blocks
+                        ForEach(content.content) { block in
+                            switch block.type {
+                            case .heading:
+                                Text(block.text)
+                                    .font(.system(size: 15, weight: .bold))
+                                    .foregroundColor(.white)
+                                    .padding(.top, 8)
+                            case .quote:
+                                Text(block.text)
+                                    .font(.system(size: 12, weight: .regular))
+                                    .foregroundColor(.cyan.opacity(0.8))
+                                    .italic()
+                                    .padding(.leading, 12)
+                                    .overlay(
+                                        Rectangle()
+                                            .fill(Color.cyan.opacity(0.4))
+                                            .frame(width: 2)
+                                            .padding(.leading, 0)
+                                    )
+                            case .paragraph:
+                                Text(block.text)
+                                    .font(.system(size: 13, weight: .regular))
+                                    .foregroundColor(.white.opacity(0.85))
+                                    .lineSpacing(3)
+                            }
+                        }
+                    }
+                    .padding(16)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color(hex: "1A1A2E"))
+            } else {
+                // Reader mode active but no content extracted yet
+                VStack(spacing: 12) {
+                    Image(systemName: "book")
+                        .font(.system(size: 32))
+                        .foregroundColor(.orange.opacity(0.6))
+                    Text("Reader Mode")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(.white.opacity(0.7))
+                    Text("Đang trích xuất nội dung...")
+                        .font(.system(size: 11))
+                        .foregroundColor(.white.opacity(0.4))
+                    ProgressView()
+                        .tint(.orange)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color(hex: "1A1A2E"))
+                .onAppear {
+                    extractArticleContent()
+                }
+            }
+        }
+    }
+
+    // MARK: - Bubble View (Mini PiP)
+
+    private var bubbleView: some View {
+        let bubbleSize: CGFloat = 56
+
+        return ZStack {
+            // Bubble body
+            Circle()
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color.black.opacity(0.8),
+                            Color(hex: "1A1A2E").opacity(0.9)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .frame(width: bubbleSize, height: bubbleSize)
+                .shadow(color: .cyan.opacity(0.3), radius: 12, x: 0, y: 4)
+                .shadow(color: .black.opacity(0.5), radius: 8, x: 0, y: 2)
+
+            // Favicon / site icon
+            if tab.controller.isLoading {
+                ProgressView()
+                    .scaleEffect(0.5)
+                    .tint(.cyan)
+            } else {
+                Image(systemName: tab.controller.isSecure ? "lock.fill" : "globe")
+                    .font(.system(size: 18))
+                    .foregroundColor(.white.opacity(0.8))
+            }
+
+            // Subtle ring
+            Circle()
+                .stroke(
+                    LinearGradient(
+                        colors: [
+                            Color.cyan.opacity(0.4),
+                            Color.cyan.opacity(0.1)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1.5
+                )
+                .frame(width: bubbleSize, height: bubbleSize)
+        }
+        .frame(width: bubbleSize, height: bubbleSize)
+        .position(tab.bubblePosition)
+        .offset(bubbleDragOffset)
+        .shadow(color: .cyan.opacity(0.2), radius: 15, x: 0, y: 5)
+        .gesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { value in
+                    bubbleDragOffset = value.translation
+                }
+                .onEnded { value in
+                    let newPos = CGPoint(
+                        x: tab.bubblePosition.x + value.translation.width,
+                        y: tab.bubblePosition.y + value.translation.height
+                    )
+                    let screen = UIScreen.main.bounds
+                    let halfSize = bubbleSize / 2
+
+                    // Snap to nearest edge
+                    let clampedX = max(halfSize, min(screen.width - halfSize, newPos.x))
+                    let clampedY = max(halfSize, min(screen.height - halfSize, newPos.y))
+
+                    // Determine if closer to left or right edge
+                    let finalX: CGFloat
+                    if clampedX < screen.width / 2 {
+                        finalX = halfSize + 4
+                    } else {
+                        finalX = screen.width - halfSize - 4
+                    }
+
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                        tab.bubblePosition = CGPoint(x: finalX, y: clampedY)
+                        bubbleDragOffset = .zero
+                    }
+                }
+        )
+        .onTapGesture {
+            haptic(.medium)
+            floatingManager.restoreFromBubble(tab)
+        }
+        .onLongPressGesture(minimumDuration: 0.3) {
+            haptic(.heavy)
+            // Long press = close
+            withAnimation(.spring(response: 0.3)) {
+                tabsManager.close(tab)
+            }
+        }
+    }
+
+    // MARK: - Resize Overlay
+
+    private var resizeOverlay: some View {
+        GeometryReader { geo in
+            ZStack {
+                ResizeZone(edge: .topLeading, tab: tab, floatingManager: floatingManager, onDragStart: { saveResizeState() }, onDragEnd: { constrainPosition() })
+                    .frame(width: 24, height: 24)
+                    .position(x: 12, y: 12)
+
+                ResizeZone(edge: .topTrailing, tab: tab, floatingManager: floatingManager, onDragStart: { saveResizeState() }, onDragEnd: { constrainPosition() })
+                    .frame(width: 24, height: 24)
+                    .position(x: geo.size.width - 12, y: 12)
+
+                ResizeZone(edge: .bottomLeading, tab: tab, floatingManager: floatingManager, onDragStart: { saveResizeState() }, onDragEnd: { constrainPosition() })
+                    .frame(width: 24, height: 24)
+                    .position(x: 12, y: geo.size.height - 12)
+
+                ResizeZone(edge: .bottomTrailing, tab: tab, floatingManager: floatingManager, onDragStart: { saveResizeState() }, onDragEnd: { constrainPosition() })
+                    .frame(width: 24, height: 24)
+                    .position(x: geo.size.width - 12, y: geo.size.height - 12)
+
+                BottomResizeZone(tab: tab, floatingManager: floatingManager, onDragStart: { saveResizeState() }, onDragEnd: { constrainPosition() })
+                    .frame(width: geo.size.width - 48, height: 8)
+                    .position(x: geo.size.width / 2, y: geo.size.height - 4)
+            }
         }
     }
 
@@ -348,44 +643,86 @@ struct FloatingWindowView: View {
         tab.id == tabsManager.activeTabId
     }
 
+    private func saveResizeState() {
+        isResizing = true
+        resizeStartSize = tab.floatingSize
+        resizeStartPosition = tab.floatingPosition
+    }
+
     private func toggleMaximize() {
         withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
             let screen = UIScreen.main.bounds
             if tab.floatingSize.width > 400 {
-                // Restore
                 let restoreSize = floatingManager.defaultWindowSize
                 tab.floatingSize = restoreSize
                 tab.floatingPosition = CGPoint(x: 20, y: 60)
             } else {
-                // Maximize
                 tab.floatingSize = CGSize(width: screen.width - 40, height: screen.height - 120)
                 tab.floatingPosition = CGPoint(x: 20, y: 60)
             }
         }
     }
 
-    private func toggleVirtualCursor() {
-        haptic(.light)
-        if floatingManager.globalVirtualCursorEnabled {
-            floatingManager.globalVirtualCursorEnabled = false
-        } else {
-            floatingManager.globalVirtualCursorEnabled = true
+    private func toggleReaderMode() {
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+            tab.isReaderMode.toggle()
+            showReaderSummary = false
+            tab.articleSummary = nil
+            tab.readerContent = nil
         }
-        tab.virtualCursorEnabled = floatingManager.globalVirtualCursorEnabled
+    }
+
+    private func extractArticleContent() {
+        guard let webView = findWKWebView() else { return }
+        ReaderModeManager.shared.extractArticle(from: webView) { content in
+            tab.readerContent = content
+        }
+    }
+
+    private func summarizeArticle(_ content: ReaderContent) {
+        tab.isSummarizing = true
+        showReaderSummary = true
+        ReaderModeManager.shared.summarizeArticle(content) { summary in
+            tab.articleSummary = summary
+            tab.isSummarizing = false
+        }
+    }
+
+    private func findWKWebView() -> WKWebView? {
+        // Walk the view hierarchy to find WKWebView
+        let keyWindow = UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap(\.windows)
+            .first { $0.isKeyWindow }
+
+        func findWebView(in view: UIView) -> WKWebView? {
+            if let webView = view as? WKWebView {
+                return webView
+            }
+            for subview in view.subviews {
+                if let found = findWebView(in: subview) {
+                    return found
+                }
+            }
+            return nil
+        }
+
+        return keyWindow.flatMap { findWebView(in: $0) }
     }
 
     private func constrainPosition() {
+        isResizing = false
         let screen = UIScreen.main.bounds
         let maxX = screen.width - tab.floatingSize.width
-        let maxY = screen.height - tab.floatingSize.height - 90
+        let maxY = screen.height - tab.floatingSize.height
         let minX: CGFloat = 0
-        let minY: CGFloat = 10
+        let minY: CGFloat = 0
 
         let clampedX = max(minX, min(maxX, tab.floatingPosition.x))
         let clampedY = max(minY, min(maxY, tab.floatingPosition.y))
 
         if tab.floatingPosition.x != clampedX || tab.floatingPosition.y != clampedY {
-            withAnimation(.spring(response: 0.3)) {
+            withAnimation(.spring(response: 0.25, dampingFraction: 0.85)) {
                 tab.floatingPosition = CGPoint(x: clampedX, y: clampedY)
             }
         }
@@ -403,7 +740,7 @@ struct FloatingWindowView: View {
         }
         if pos.y < snapThreshold {
             floatingManager.snapToEdge(tab, edge: .top)
-        } else if pos.y > screen.height - tab.floatingSize.height - 90 - snapThreshold {
+        } else if pos.y > screen.height - tab.floatingSize.height - snapThreshold {
             floatingManager.snapToEdge(tab, edge: .bottom)
         }
     }
@@ -439,66 +776,65 @@ struct FloatingWindowView: View {
     }
 }
 
-// MARK: - Resize Corner Handle
+// MARK: - Resize Zone
 
-private struct ResizeCornerHandle: View {
+private struct ResizeZone: View {
     let edge: ResizeEdge
     @ObservedObject var tab: BrowserTab
     @ObservedObject var floatingManager: FloatingWindowManager
+    var onDragStart: () -> Void
+    var onDragEnd: () -> Void
 
+    @State private var isDragging = false
     @State private var startSize: CGSize = .zero
     @State private var startPosition: CGPoint = .zero
 
     var body: some View {
-        GeometryReader { geo in
-            let handleSize: CGFloat = 22
-            let position = cornerPosition(in: geo.size, handleSize: handleSize)
-
-            Circle()
-                .fill(Color.white.opacity(0.15))
-                .frame(width: handleSize, height: handleSize)
-                .overlay(
-                    Circle()
-                        .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
-                )
-                .position(position)
-                .contentShape(Circle())
-                .gesture(
-                    DragGesture(minimumDistance: 1)
-                        .onChanged { value in
+        Color.clear
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture(minimumDistance: 1)
+                    .onChanged { value in
+                        if !isDragging {
+                            isDragging = true
                             startSize = tab.floatingSize
                             startPosition = tab.floatingPosition
-                            handleDragChanged(value)
+                            onDragStart()
                         }
-                        .onEnded { _ in
-                            constrainPosition()
-                        }
-                )
-        }
-        .frame(width: 22, height: 22)
-        .position(cornerPositionInWindow)
+                        handleDragChanged(value)
+                    }
+                    .onEnded { _ in
+                        isDragging = false
+                        onDragEnd()
+                    }
+            )
+            .background(
+                Group {
+                    if isDragging {
+                        edgeGlow
+                    }
+                }
+            )
     }
 
-    private var cornerPositionInWindow: CGPoint {
-        let w = tab.floatingSize.width
-        let h = tab.floatingSize.height
-        switch edge {
-        case .topLeading: return CGPoint(x: 11, y: 11)
-        case .topTrailing: return CGPoint(x: w - 11, y: 11)
-        case .bottomLeading: return CGPoint(x: 11, y: h - 11)
-        case .bottomTrailing: return CGPoint(x: w - 11, y: h - 11)
-        case .none: return CGPoint(x: w / 2, y: h / 2)
-        }
-    }
-
-    private func cornerPosition(in size: CGSize, handleSize: CGFloat) -> CGPoint {
-        let h = handleSize / 2
-        switch edge {
-        case .topLeading: return CGPoint(x: h, y: h)
-        case .topTrailing: return CGPoint(x: size.width - h, y: h)
-        case .bottomLeading: return CGPoint(x: h, y: size.height - h)
-        case .bottomTrailing: return CGPoint(x: size.width - h, y: size.height - h)
-        case .none: return CGPoint(x: size.width / 2, y: size.height / 2)
+    private var edgeGlow: some View {
+        GeometryReader { geo in
+            switch edge {
+            case .topLeading:
+                VStack { Rectangle().fill(LinearGradient(colors: [.cyan.opacity(0.3), .clear], startPoint: .topLeading, endPoint: .bottomTrailing)).frame(height: 2); Spacer() }.frame(height: 8)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            case .topTrailing:
+                VStack { Rectangle().fill(LinearGradient(colors: [.cyan.opacity(0.3), .clear], startPoint: .topTrailing, endPoint: .bottomLeading)).frame(height: 2); Spacer() }.frame(height: 8)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+            case .bottomLeading:
+                VStack { Spacer(); Rectangle().fill(LinearGradient(colors: [.clear, .cyan.opacity(0.3)], startPoint: .topLeading, endPoint: .bottomTrailing)).frame(height: 2) }.frame(height: 8)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            case .bottomTrailing:
+                VStack { Spacer(); Rectangle().fill(LinearGradient(colors: [.clear, .cyan.opacity(0.3)], startPoint: .topTrailing, endPoint: .bottomLeading)).frame(height: 2) }.frame(height: 8)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+            case .none:
+                EmptyView()
+            }
         }
     }
 
@@ -506,7 +842,7 @@ private struct ResizeCornerHandle: View {
         let minW: CGFloat = 280
         let maxW: CGFloat = UIScreen.main.bounds.width - 40
         let minH: CGFloat = 320
-        let maxH: CGFloat = UIScreen.main.bounds.height - 120
+        let maxH: CGFloat = UIScreen.main.bounds.height - 80
 
         var deltaW: CGFloat = 0
         var deltaH: CGFloat = 0
@@ -531,7 +867,6 @@ private struct ResizeCornerHandle: View {
         let newW = max(minW, min(maxW, startSize.width + deltaW))
         var newH = max(minH, min(maxH, startSize.height + deltaH))
 
-        // Maintain aspect ratio if locked
         if let ratio = tab.aspectRatio?.ratio {
             newH = newW / ratio
             newH = max(minH, min(maxH, newH))
@@ -539,12 +874,11 @@ private struct ResizeCornerHandle: View {
 
         tab.floatingSize = CGSize(width: newW, height: newH)
 
-        // Adjust position for top/left edges
         if edge == .topLeading || edge == .topTrailing {
             let heightDelta = startSize.height - newH
             tab.floatingPosition = CGPoint(
                 x: startPosition.x,
-                y: max(10, startPosition.y + heightDelta)
+                y: max(0, startPosition.y + heightDelta)
             )
         }
         if edge == .topLeading || edge == .bottomLeading {
@@ -555,19 +889,41 @@ private struct ResizeCornerHandle: View {
             )
         }
     }
+}
 
-    private func constrainPosition() {
-        let screen = UIScreen.main.bounds
-        let maxX = screen.width - tab.floatingSize.width
-        let maxY = screen.height - tab.floatingSize.height - 90
-        let x = max(0, min(maxX, tab.floatingPosition.x))
-        let y = max(10, min(maxY, tab.floatingPosition.y))
+// MARK: - Bottom Resize Zone (vertical-only resize from bottom edge)
 
-        if tab.floatingPosition.x != x || tab.floatingPosition.y != y {
-            withAnimation(.spring(response: 0.3)) {
-                tab.floatingPosition = CGPoint(x: x, y: y)
-            }
-        }
+private struct BottomResizeZone: View {
+    @ObservedObject var tab: BrowserTab
+    @ObservedObject var floatingManager: FloatingWindowManager
+    var onDragStart: () -> Void
+    var onDragEnd: () -> Void
+
+    @State private var isDragging = false
+    @State private var startSize: CGSize = .zero
+
+    var body: some View {
+        Color.clear
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture(minimumDistance: 1)
+                    .onChanged { value in
+                        if !isDragging {
+                            isDragging = true
+                            startSize = tab.floatingSize
+                            onDragStart()
+                        }
+                        // Only vertical resize — ignore horizontal translation
+                        let minH: CGFloat = 320
+                        let maxH: CGFloat = UIScreen.main.bounds.height - 80
+                        let newH = max(minH, min(maxH, startSize.height + value.translation.height))
+                        tab.floatingSize = CGSize(width: tab.floatingSize.width, height: newH)
+                    }
+                    .onEnded { _ in
+                        isDragging = false
+                        onDragEnd()
+                    }
+            )
     }
 }
 
@@ -619,3 +975,7 @@ private struct AspectRatioMenu: View {
         .frame(width: 160)
     }
 }
+
+// MARK: - WKWebView import for findWKWebView
+
+import WebKit

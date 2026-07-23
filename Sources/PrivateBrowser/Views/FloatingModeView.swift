@@ -3,7 +3,7 @@ import SwiftUI
 /// Chế độ cửa sổ nổi — hiển thị tab dưới dạng các cửa sổ nhỏ,
 /// giống như trên desktop/laptop, có dock ở dưới cùng và hình nền máy tính.
 ///
-/// v3.4: Thêm virtual cursor global overlay, cập nhật dock integration.
+/// v4.0: Full floating OS with bubble mode, reader mode, multi-window tiling.
 struct FloatingModeView: View {
     @ObservedObject var tabsManager: TabsManager
     @ObservedObject var floatingManager: FloatingWindowManager
@@ -15,6 +15,8 @@ struct FloatingModeView: View {
     var hapticsEnabled: Bool
     @Binding var isPresented: Bool
 
+    @StateObject private var downloadManager = DownloadManager.shared
+
     var body: some View {
         ZStack {
             // Desktop background
@@ -22,7 +24,7 @@ struct FloatingModeView: View {
 
             // Floating windows
             ForEach(tabsManager.tabs) { tab in
-                if tab.isFloating && !tab.isMinimizedToDock {
+                if tab.isFloating && !tab.isMinimizedToDock && !tab.isBubbleMode {
                     FloatingWindowView(
                         tab: tab,
                         floatingManager: floatingManager,
@@ -37,11 +39,26 @@ struct FloatingModeView: View {
                 }
             }
 
+            // Bubble mode tabs (floating over everything)
+            ForEach(tabsManager.tabs) { tab in
+                if tab.isBubbleMode {
+                    // Bubble is rendered inside FloatingWindowView
+                    // but we need to show it here since FloatingWindowView is hidden
+                    BubbleOverlay(
+                        tab: tab,
+                        floatingManager: floatingManager,
+                        tabsManager: tabsManager,
+                        hapticsEnabled: hapticsEnabled
+                    )
+                }
+            }
+
             // Dock
             FloatingDockView(
                 tabsManager: tabsManager,
                 floatingManager: floatingManager,
                 zoomManager: zoomManager,
+                downloadManager: downloadManager,
                 blockWebRTC: blockWebRTC,
                 blockIframe: blockIframe,
                 blockAds: blockAds,
@@ -135,6 +152,100 @@ struct FloatingModeView: View {
     private func haptic(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
         guard hapticsEnabled else { return }
         UIImpactFeedbackGenerator(style: style).impactOccurred()
+    }
+}
+
+// MARK: - Bubble Overlay
+
+/// Standalone bubble view that renders on top of everything when a tab is in bubble mode.
+private struct BubbleOverlay: View {
+    @ObservedObject var tab: BrowserTab
+    @ObservedObject var floatingManager: FloatingWindowManager
+    @ObservedObject var tabsManager: TabsManager
+    var hapticsEnabled: Bool
+
+    @State private var dragOffset: CGSize = .zero
+
+    private let bubbleSize: CGFloat = 56
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color.black.opacity(0.8),
+                            Color(hex: "1A1A2E").opacity(0.9)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .frame(width: bubbleSize, height: bubbleSize)
+
+            if tab.controller.isLoading {
+                ProgressView()
+                    .scaleEffect(0.5)
+                    .tint(.cyan)
+            } else {
+                Image(systemName: tab.controller.isSecure ? "lock.fill" : "globe")
+                    .font(.system(size: 18))
+                    .foregroundColor(.white.opacity(0.8))
+            }
+
+            Circle()
+                .stroke(
+                    LinearGradient(
+                        colors: [Color.cyan.opacity(0.4), Color.cyan.opacity(0.1)],
+                        startPoint: .topLeading, endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1.5
+                )
+                .frame(width: bubbleSize, height: bubbleSize)
+        }
+        .frame(width: bubbleSize, height: bubbleSize)
+        .position(tab.bubblePosition)
+        .offset(dragOffset)
+        .shadow(color: .cyan.opacity(0.2), radius: 15, x: 0, y: 5)
+        .shadow(color: .black.opacity(0.5), radius: 8, x: 0, y: 2)
+        .gesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { value in
+                    dragOffset = value.translation
+                }
+                .onEnded { value in
+                    let newPos = CGPoint(
+                        x: tab.bubblePosition.x + value.translation.width,
+                        y: tab.bubblePosition.y + value.translation.height
+                    )
+                    let screen = UIScreen.main.bounds
+                    let halfSize = bubbleSize / 2
+                    let clampedX = max(halfSize, min(screen.width - halfSize, newPos.x))
+                    let clampedY = max(halfSize, min(screen.height - halfSize, newPos.y))
+
+                    let finalX: CGFloat = clampedX < screen.width / 2 ? halfSize + 4 : screen.width - halfSize - 4
+
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                        tab.bubblePosition = CGPoint(x: finalX, y: clampedY)
+                        dragOffset = .zero
+                    }
+                }
+        )
+        .onTapGesture {
+            if hapticsEnabled {
+                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+            }
+            floatingManager.restoreFromBubble(tab)
+        }
+        .onLongPressGesture(minimumDuration: 0.3) {
+            if hapticsEnabled {
+                UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+            }
+            withAnimation(.spring(response: 0.3)) {
+                tabsManager.close(tab)
+            }
+        }
+        .zIndex(9999)
     }
 }
 
