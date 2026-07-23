@@ -20,7 +20,23 @@ workflows:
 
       - name: Build Archive
         script: |
+          echo "=== Debug: Current directory ==="
+          pwd
+          echo "=== Debug: Listing files ==="
+          ls -la
+          echo "=== Debug: Looking for xcodeproj ==="
           PROJ_FILE=$(find . -maxdepth 2 -name "*.xcodeproj" | head -n 1)
+          echo "Found project: $PROJ_FILE"
+          
+          if [ -z "$PROJ_FILE" ]; then
+            echo "ERROR: No .xcodeproj found! xcodegen may have failed."
+            echo "=== Debug: Checking if xcodegen exists ==="
+            which xcodegen || echo "xcodegen not found"
+            exit 1
+          fi
+          
+          echo "=== Debug: Available schemes ==="
+          xcodebuild -project "$PROJ_FILE" -list
           
           xcodebuild -project "$PROJ_FILE" \
             -scheme "$XCODE_SCHEME" \
