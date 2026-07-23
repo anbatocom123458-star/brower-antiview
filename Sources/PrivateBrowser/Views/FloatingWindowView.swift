@@ -178,8 +178,12 @@ struct FloatingWindowView: View {
                 }
                 .buttonStyle(.plain)
                 .popover(isPresented: $showAspectRatioMenu) {
-                    AspectRatioMenu(tab: tab, floatingManager: floatingManager)
-                        .presentationCompactAdaptation(.popover)
+                    if #available(iOS 16.4, *) {
+                        AspectRatioMenu(tab: tab, floatingManager: floatingManager)
+                            .presentationCompactAdaptation(.popover)
+                    } else {
+                        AspectRatioMenu(tab: tab, floatingManager: floatingManager)
+                    }
                 }
 
                 // Virtual cursor toggle
@@ -483,6 +487,7 @@ private struct ResizeCornerHandle: View {
         case .topTrailing: return CGPoint(x: w - 11, y: 11)
         case .bottomLeading: return CGPoint(x: 11, y: h - 11)
         case .bottomTrailing: return CGPoint(x: w - 11, y: h - 11)
+        case .none: return CGPoint(x: w / 2, y: h / 2)
         }
     }
 
@@ -493,6 +498,7 @@ private struct ResizeCornerHandle: View {
         case .topTrailing: return CGPoint(x: size.width - h, y: h)
         case .bottomLeading: return CGPoint(x: h, y: size.height - h)
         case .bottomTrailing: return CGPoint(x: size.width - h, y: size.height - h)
+        case .none: return CGPoint(x: size.width / 2, y: size.height / 2)
         }
     }
 
@@ -518,9 +524,11 @@ private struct ResizeCornerHandle: View {
         case .bottomTrailing:
             deltaW = value.translation.width
             deltaH = value.translation.height
+        case .none:
+            break
         }
 
-        var newW = max(minW, min(maxW, startSize.width + deltaW))
+        let newW = max(minW, min(maxW, startSize.width + deltaW))
         var newH = max(minH, min(maxH, startSize.height + deltaH))
 
         // Maintain aspect ratio if locked

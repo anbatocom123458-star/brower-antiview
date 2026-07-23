@@ -117,7 +117,7 @@ final class FloatingWindowManager: ObservableObject {
         let minH: CGFloat = 320
         let maxH: CGFloat = UIScreen.main.bounds.height - 150
 
-        var newWidth = max(minW, min(maxW, size.width))
+        let newWidth = max(minW, min(maxW, size.width))
         var newHeight = max(minH, min(maxH, size.height))
 
         // Áp dụng aspect ratio nếu đang lock

@@ -73,6 +73,7 @@ final class BiometricAuthManager: ObservableObject {
         case .faceID: return "Face ID"
         case .touchID: return "Touch ID"
         case .opticID: return "Optic ID"
+        case .none: return "Không khả dụng"
         @unknown default: return "Sinh trắc học"
         }
     }
