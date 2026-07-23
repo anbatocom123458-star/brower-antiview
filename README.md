@@ -1,42 +1,31 @@
 # Private Browser iOS — v3.0 (Liquid Glass + Bảo vệ nâng cao)
 
 Trình duyệt web kín cho iPhone — **không cần Xcode app, không cần Apple Developer**.
+# Private Browser iOS — v3.1 (Liquid Glass + Tab Riêng Tư & Chặn Trình Theo Dõi Nâng Cao)
 
-## 🧊 Mới trong v3.0: Liquid Glass & ẩn mình nâng cao
-- **Hiệu ứng Liquid Glass (iOS 26+)**: thanh địa chỉ, thanh công cụ, panel zoom, hộp báo lỗi giờ dùng `.glassEffect()` / `GlassEffectContainer` thật của hệ thống — kính trong, khúc xạ ánh sáng, phản hồi chạm mượt. Trên iOS 16–25 tự rơi về hiệu ứng glassmorphism cũ, không đổi hành vi, không crash.
-- **Nút bấm kính (`.glass` / `.glassProminent`)**: các nút hành động chính ("Thử lại", "Đặt lại zoom"...) dùng button style kính chuẩn của iOS 26, có hiệu ứng nhún/sáng khi nhấn.
-- **Chặn quảng cáo & trình theo dõi ở tầng network**: dùng `WKContentRuleList` (định dạng Content Blocker của Safari) — chặn trước khi tải về, nhẹ hơn nhiều so với chỉ lọc bằng JavaScript.
-- **Tự dọn tham số theo dõi trong URL**: xoá `utm_*`, `fbclid`, `gclid`, `msclkid`... khỏi mọi liên kết trước khi mở, cả khi gõ URL và khi bấm link trong trang.
-- **Chống dấu vân tay nâng cao**: thêm chuẩn hoá múi giờ (UTC), `hardwareConcurrency`, `deviceMemory`, ẩn `navigator.plugins`, làm nhiễu AudioContext (chống audio fingerprinting), ẩn `document.referrer`.
-- **Tự động xoá dữ liệu khi rời app** (tuỳ chọn): bật trong Menu để mọi cookie/cache bị xoá ngay khi chuyển sang app khác.
-- **Tự ẩn khi bị ghi màn hình**: phát hiện `UIScreen.isCaptured` (quay màn hình) và tự động che nội dung, không chỉ khi vào App Switcher.
-- **"Phiên mới"**: một nút trong Menu để xoá sạch dữ liệu + về trang chủ ngay lập tức, không cần vào từng bước.
+Trình duyệt web ẩn danh & bảo mật cao cấp cho iPhone — **không cần Xcode app, không cần Apple Developer**.
 
-## 🆕 Có gì mới trong bản cải tiến trước (v2.0)
-- **Kiến trúc lại toàn bộ**: tách rõ Models / Views / WebView / Extensions, dễ bảo trì, dễ mở rộng.
-- **Menu riêng đầy đủ**: màn hình cài đặt riêng (không còn dropdown nhỏ) — chọn công cụ tìm kiếm, bật/tắt từng lớp bảo vệ, chế độ máy tính, haptics, xác nhận trước khi xoá dữ liệu.
-- **Phần Giới thiệu chi tiết**: icon app, mô tả, lưới tính năng minh hoạ bằng icon, số phiên bản đọc trực tiếp từ bundle.
-- **App Icon riêng**: bộ icon đầy đủ kích thước (20pt → 1024pt) theo chủ đề shield/incognito, đã nhúng vào Assets.xcassets.
-- **Tăng ổn định**:
-  - Xử lý đầy đủ JS `alert` / `confirm` / `prompt` — nhiều trang trước đây có thể bị "treo" vì WKWebView không phản hồi các hộp thoại này.
-  - Bỏ cách so sánh URL ở mỗi lần render (nguồn gây loop reload khi đang gõ) — thay bằng `BrowserController` điều khiển điều hướng tường minh.
-  - Hiển thị màn hình lỗi thân thiện khi mất mạng / DNS lỗi / SSL lỗi, có nút "Thử lại".
-  - Dọn dẹp KVO observer đúng cách (deinit) — tránh rò nhớ khi đóng WebView.
-  - Chặn an toàn các scheme lạ (`tel:`, `mailto:`, `sms:`...) bằng cách chuyển cho hệ thống xử lý thay vì crash.
-  - Zoom chỉ inject JavaScript khi giá trị thực sự đổi — mượt hơn, đỡ tốn pin.
-  - Sửa lỗi cấu trúc project (đường dẫn sai hoa/thường, tên thư mục `Assets.xcassets` bị gõ nhầm) từng có thể khiến build thất bại trên máy phân biệt hoa/thường.
-- **Riêng tư nâng cao**: màn hình che (Privacy Shield) tự động phủ nội dung khi app chuyển sang nền, tránh lộ ảnh xem trước trong App Switcher.
-- **Tối ưu**: cho phép bật/tắt riêng từng lớp chống rò IP / chống fingerprint / chặn iframe, để tương thích tốt hơn với các trang nhạy với việc bị chặn quá tay.
-
-## Tính năng nổi bật
-- **Private Mode tuyệt đối**: `nonPersistent`, không cache, không cookie, không lịch sử
-- **Chống lộ IP**: Chặn WebRTC, GeoLocation, Battery API, Canvas/WebGL Fingerprint
-- **Chặn iframe**: Xoá sạch iframe trên mọi trang web, kể cả chèn động
-- **Menu riêng**: cấu hình toàn bộ hành vi bảo mật & trải nghiệm ở một nơi
-- **Giới thiệu chi tiết**: xem đầy đủ tính năng và phiên bản app
-- **Zoom linh hoạt**: 25% → 200% với slider trực quan
-- **UI/UX đẹp**: Dark mode, glassmorphism, gradient, animation mượt
-- **Build tự động**: Push GitHub → Codemagic build IPA unsigned
+## 🧊 Có gì mới trong phiên bản 3.1:
+- **Nâng cấp Hiệu ứng Liquid Glass (iOS 26+)**: Tối ưu hóa hiệu ứng kính trong suốt và phản hồi thị giác trên toàn bộ giao diện app (`.glassEffect()`, `GlassEffectContainer`, nút bấm kính `.glass` / `.glassProminent`). Cho trải nghiệm vuốt chạm, khúc xạ ánh sáng sống động và mượt mà tuyệt đối. Tự động rơi về Glassmorphism tương thích hoàn hảo trên các phiên bản iOS cũ hơn (iOS 16–25) mà không gây crash hay lag.
+- **Thêm Tab Riêng Tư & Quản Lý Đa Tab (Tab Grid)**: Hỗ trợ duyệt web đa nhiệm với giao diện quản lý tab lưới trực quan (Tab Grid View). Dễ dàng chuyển đổi, tạo tab riêng tư mới hoặc đóng tất cả tab cùng lúc. Mỗi tab hoạt động độc lập trong môi trường cách ly an toàn.
+- **Chặn Trình Theo Dõi & Quảng Cáo Nâng Cao (Content Blocker)**: Tích hợp bộ quy tắc chặn tầng network chuẩn Safari `WKContentRuleList`. Chặn triệt để các trình theo dõi, quảng cáo phiền phức và mã độc theo dõi trước khi nội dung được tải về, giúp tăng tốc độ load trang đến 40% và tiết kiệm dung lượng mạng.
+- **Tự Động Lọc Tham Số Theo Dõi URL**: Tự động xoá sạch các tham số theo dõi hành vi dùng trong marketing (như `utm_*`, `fbclid`, `gclid`, `msclkid`, `mc_eid`...) khỏi liên kết ngay khi bấm mở hoặc gõ tìm kiếm.
+- **Chống Dấu Vân Tay Thiết Bị (Fingerprint Protection) Nâng Cao**: Giả lập/làm nhiễu Canvas, WebGL, AudioContext; ẩn thông tin CPU (`hardwareConcurrency`), RAM (`deviceMemory`), các plugin trình duyệt, chuẩn hóa múi giờ UTC và ẩn `document.referrer` để chặn các công ty quảng cáo nhận dạng thiết bị.
+- **Chống Lộ IP & Chặn WebRTC / GeoLocation**: Ngăn chặn tuyệt đối các lỗ hổng rò rỉ IP qua WebRTC, chặn tự động yêu cầu vị trí địa lý, Battery API và loại bỏ hoàn toàn các khung iframe độc hại/quảng cáo chèn ẩn.
+- **Bảo Vệ Quyền Riêng Tư Tức Thì**:
+  - **Màn hình bảo vệ (Privacy Shield)**: Tự động che phủ màn hình ứng dụng khi chuyển sang App Switcher hoặc khi phát hiện thiết bị đang bị quay màn hình (`UIScreen.isCaptured`).
+  - **Tự động dọn dẹp khi rời App**: Xóa sạch toàn bộ Session, Cookies và Cache ngay khi app chuyển sang chế độ chạy ngầm.
+  - **Nút "Phiên mới" nhanh**: Xóa sạch tức thì toàn bộ dữ liệu duyệt web hiện tại và đưa người dùng về trang chủ chỉ với 1 chạm từ Menu.
+- **Trải Nghiệm Người Dùng Tối Ưu**:
+  - Đầy đủ tính năng Zoom trang (25% → 200%), Menu cài đặt riêng linh hoạt, chọn công cụ tìm kiếm mặc định (DuckDuckGo, Google, Bing, Brave, Yahoo).
+  - Xử lý mượt mà các hộp thoại JavaScript (`alert`, `confirm`, `prompt`) và các luồng liên kết hệ thống (`tel:`, `mailto:`, `sms:`).
+## 🛠️ Khắc phục lỗi & Tăng độ ổn định từ bản v3.0:
+- **Sửa lỗi dính Captcha / Cloudflare Turnstile**: Loại bỏ việc can thiệp ngẫu nhiên vào Canvas/AudioContext và giả mạo mâu thuẫn giữa `navigator.platform` với `userAgent` — nguyên nhân chính ở v3.0 khiến các hệ thống chống bot như Cloudflare, reCAPTCHA v3 liên tục yêu cầu xác minh "tôi không phải robot".
+- **Sửa lỗi trang bị "treo" khi hiện hộp thoại JS**: Thêm đầy đủ trình xử lý cho `alert()`, `confirm()`, và `prompt()` của JavaScript.
+- **Sửa lỗi vòng lặp reload (Loop Reload) khi gõ URL**: Tách hoàn toàn logic điều hướng ra khỏi vòng đời render của SwiftUI (`updateUIView`), chuyển sang điều khiển tường minh bằng `BrowserController`.
+- **Bắt lỗi JavaScript Runtime (React / Next.js Exception)**: Lắng nghe các lỗi uncaught exception/unhandled rejection từ JS client-side (như lỗi "Application error" của DuckDuckGo) để tự động hiển thị màn hình thông báo lỗi kèm nút **"Thử lại"** thay vì bị trang trắng/màn hình đen im lặng.
+- **Khắc phục rò rỉ bộ nhớ (Memory Leak)**: Dọn dẹp chính xác các `KVO Observer` và gỡ bỏ `ScriptMessageHandler` trong `dismantleUIView` khi đóng tab/WebView.
+- **Xử lý an toàn các URL Scheme ngoại lệ**: Chuyển giao các liên kết dạng `tel:`, `mailto:`, `sms:`, `facetime:` cho hệ thống iOS xử lý thay vì gây đơ hoặc crash WebView.
 
 ## Cách dùng
 1. Tạo repo GitHub, push toàn bộ file trên
