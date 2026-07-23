@@ -2,12 +2,6 @@ import SwiftUI
 import WebKit
 import UIKit
 
-/// Bọc WKWebView cho SwiftUI. So với bản cũ, bản này:
-/// - Không còn so sánh URL ở mỗi updateUIView (nguồn gây loop reload khi gõ URL).
-/// - Xử lý đầy đủ JS alert/confirm/prompt để trang không bị "treo" khi gọi window.alert.
-/// - Chặn scheme lạ (tel:, mailto:...) bằng cách chuyển cho hệ thống xử lý, không crash.
-/// - Dọn dẹp KVO observer đúng cách trong deinit — tránh rò nhớ.
-/// - Hỗ trợ tải xuống file (WKDownload) và Userscript Manager.
 struct BrowserView: UIViewRepresentable {
     @ObservedObject var controller: BrowserController
     @ObservedObject var zoomManager: ZoomManager
@@ -43,9 +37,7 @@ struct BrowserView: UIViewRepresentable {
                 forMainFrameOnly: false
             ))
         }
-        // Bắt lỗi JS runtime chưa xử lý (kiểu "Application error" của các trang
-        // React/Next.js) để hiện màn hình lỗi có nút Thử lại — luôn bật, không phụ
-        // thuộc cờ bảo mật nào vì mục đích là ổn định trải nghiệm, không phải riêng tư.
+
         ucc.add(context.coordinator, name: AntiIPLeak.jsErrorHandlerName)
         ucc.addUserScript(WKUserScript(
             source: AntiIPLeak.jsErrorReportScript,
@@ -98,8 +90,6 @@ struct BrowserView: UIViewRepresentable {
         webView.stopLoading()
         webView.navigationDelegate = nil
         webView.uiDelegate = nil
-        // WKUserContentController giữ strong reference tới message handler — phải gỡ
-        // tường minh, nếu không Coordinator (và toàn bộ BrowserController nó tham chiếu) sẽ rò nhớ.
         webView.configuration.userContentController.removeScriptMessageHandler(forName: AntiIPLeak.jsErrorHandlerName)
     }
 
@@ -114,9 +104,6 @@ struct BrowserView: UIViewRepresentable {
         private var forwardObservation: NSKeyValueObservation?
         private var titleObservation: NSKeyValueObservation?
         private var adBlockApplied = false
-        /// Chống báo lỗi JS dồn dập: nhiều trang ném hàng chục lỗi liên tiếp khi hydrate
-        /// hỏng (mỗi component con lỗi một lần) — chỉ hiện overlay lỗi cho lỗi đầu tiên
-        /// trong mỗi lượt tải trang, tránh loadError bị ghi đè liên tục gây giật UI.
         private var didReportJSErrorForCurrentLoad = false
 
         init(controller: BrowserController, zoomManager: ZoomManager, userscriptManager: UserscriptManager) {
@@ -125,8 +112,6 @@ struct BrowserView: UIViewRepresentable {
             self.userscriptManager = userscriptManager
         }
 
-        /// Bật/tắt bộ chặn quảng cáo & theo dõi (WKContentRuleList) theo cài đặt hiện tại,
-        /// tránh biên dịch/gắn lại nhiều lần không cần thiết khi SwiftUI re-render.
         func syncAdBlock(enabled: Bool, webView: WKWebView) {
             if enabled && !adBlockApplied {
                 adBlockApplied = true
@@ -178,7 +163,6 @@ struct BrowserView: UIViewRepresentable {
             let scheme = url.scheme?.lowercased() ?? ""
             let webSchemes: Set<String> = ["http", "https", "about", "blob", "data", "file"]
             if webSchemes.contains(scheme) {
-                // Dọn tham số theo dõi ngay cả khi người dùng bấm link trong trang, không chỉ khi gõ URL.
                 let cleaned = BrowserController.stripTrackingParameters(from: url)
                 if cleaned != url {
                     decisionHandler(.cancel)
@@ -188,19 +172,17 @@ struct BrowserView: UIViewRepresentable {
                 decisionHandler(.allow)
                 return
             }
-            // Scheme đặc biệt (tel:, mailto:, sms:, facetime:...) -> chuyển cho hệ thống xử lý.
+
             if UIApplication.shared.canOpenURL(url) {
                 UIApplication.shared.open(url, options: [:], completionHandler: nil)
             }
             decisionHandler(.cancel)
         }
 
-        /// Kiểm tra response có phải file download không (Content-Disposition: attachment).
         func webView(_ webView: WKWebView, decidePolicyFor navigationResponse: WKNavigationResponse, decisionHandler: @escaping (WKNavigationResponsePolicy) -> Void) {
             let response = navigationResponse.response as? HTTPURLResponse
             let contentDisposition = response?.value(forHTTPHeaderField: "Content-Disposition") ?? ""
 
-            // Phát hiện download qua Content-Disposition header
             if contentDisposition.lowercased().contains("attachment") {
                 let filename = response?.value(forHTTPHeaderField: "Content-Disposition")
                     .flatMap { headerValue in
@@ -212,7 +194,6 @@ struct BrowserView: UIViewRepresentable {
                     ?? "download"
                 let url = navigationResponse.response.url
 
-                // Tải file bằng URLSession thay vì WKDownload (tương thích iOS 18)
                 if let downloadURL = url {
                     let task = URLSession.shared.downloadTask(with: downloadURL) { tempURL, _, _ in
                         guard let tempURL else { return }
@@ -285,7 +266,6 @@ struct BrowserView: UIViewRepresentable {
             DispatchQueue.main.async {
                 self.controller?.isLoading = false
                 self.controller?.progress = 0
-                // Bỏ qua lỗi "cancelled" — thường do người dùng điều hướng tiếp rất nhanh, không phải lỗi thật.
                 if nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorCancelled {
                     return
                 }
@@ -308,14 +288,6 @@ struct BrowserView: UIViewRepresentable {
             }
         }
 
-        // MARK: - Lỗi JavaScript runtime (kiểu "Application error" của DuckDuckGo/Next.js)
-
-        /// Nhận báo lỗi từ jsErrorReportScript. Đây là loại lỗi xảy ra SAU khi điều hướng
-        /// đã "thành công" theo góc nhìn mạng (trang tải xong, JS chạy rồi mới lỗi khi
-        /// hydrate) — nên không đi qua didFail/didFailProvisionalNavigation ở trên.
-        /// Không thể tự khắc phục kiểu lỗi này từ phía trình duyệt (lỗi nằm trong code
-        /// của chính trang), nên việc hợp lý nhất là báo rõ cho người dùng và cho phép
-        /// tải lại — giống hệt cách Safari/Chrome xử lý khi một trang tự crash.
         func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
             guard message.name == AntiIPLeak.jsErrorHandlerName else { return }
             guard !didReportJSErrorForCurrentLoad else { return }
@@ -329,12 +301,6 @@ struct BrowserView: UIViewRepresentable {
         }
 
         func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration, for navigationAction: WKNavigationAction, windowFeatures: WKWindowFeatures) -> WKWebView? {
-            // Trang mở "cửa sổ mới" (target=_blank) -> mở luôn trong webView hiện tại
-            // để giữ đúng chế độ riêng tư (không tạo webView con không kiểm soát được).
-            // Đẩy sang main queue async thay vì gọi load() ngay trong callback này: tại
-            // thời điểm này WebKit đang giữa quy trình nội bộ tạo một webview con, gọi
-            // load() đồng bộ đè lên chính webView hiện tại có thể xung đột trạng thái
-            // điều hướng trên một số trang (đặc biệt popup đăng nhập OAuth).
             if let url = navigationAction.request.url {
                 DispatchQueue.main.async {
                     webView.load(URLRequest(url: url))
@@ -346,8 +312,6 @@ struct BrowserView: UIViewRepresentable {
         func webView(_ webView: WKWebView, didReceive challenge: URLAuthenticationChallenge, completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
             completionHandler(.performDefaultHandling, nil)
         }
-
-        // MARK: - JS Dialogs — bắt buộc phải xử lý, nếu không nhiều trang sẽ bị "treo" vô hạn.
 
         func webView(_ webView: WKWebView, runJavaScriptAlertPanelWithMessage message: String, initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping () -> Void) {
             DispatchQueue.main.async {
