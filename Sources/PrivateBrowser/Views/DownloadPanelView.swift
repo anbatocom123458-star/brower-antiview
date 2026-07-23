@@ -172,9 +172,12 @@ struct DownloadPanelView: View {
         .clipShape(RoundedRectangle(cornerRadius: 10))
     }
 
+    @State private var documentController: UIDocumentInteractionController?
+
     private func openFile(_ url: URL) {
         guard let root = UIApplication.shared.topMostViewController() else { return }
         let controller = UIDocumentInteractionController(url: url)
+        self.documentController = controller
         controller.presentOpenInMenu(from: root.view.bounds, in: root.view, animated: true)
     }
 }

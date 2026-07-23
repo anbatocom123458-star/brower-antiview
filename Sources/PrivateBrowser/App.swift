@@ -20,13 +20,15 @@ struct PrivateBrowserApp: App {
         UserDefaults.standard.register(defaults: [
             SettingsKey.blockWebRTC: true,
             SettingsKey.blockIframe: true,
+            SettingsKey.blockAds: true,
             SettingsKey.hapticsEnabled: true,
             SettingsKey.confirmClearData: true,
             SettingsKey.defaultHTTP: false,
             SettingsKey.desktopMode: false,
             SettingsKey.searchEngine: SearchEngine.duckduckgo.rawValue,
             SettingsKey.restoreSession: true,
-            SettingsKey.developerToolsEnabled: true
+            SettingsKey.developerToolsEnabled: true,
+            SettingsKey.biometricLockPrivateTabs: false
         ])
     }
 }

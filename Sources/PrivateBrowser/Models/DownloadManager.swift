@@ -8,7 +8,6 @@ final class DownloadManager: NSObject, ObservableObject, WKDownloadDelegate {
     @Published var showDownloadPanel = false
 
     private var downloadContinuations: [UUID: WKDownload] = [:]
-    private var downloadDelegates: [UUID: DownloadDelegateHandler] = [:]
     private var destinationURLs: [UUID: URL] = [:]
     private let lock = NSLock()
 
@@ -190,27 +189,5 @@ struct DownloadItem: Identifiable {
         case downloading
         case completed
         case failed(String)
-    }
-}
-
-/// Delegate handler riêng để giữ reference đúng cách
-private class DownloadDelegateHandler: NSObject, WKDownloadDelegate {
-    let manager: DownloadManager
-    init(manager: DownloadManager) { self.manager = manager }
-
-    func download(_ download: WKDownload, decideDestinationUsing response: URLResponse, suggestedFilename: String, completionHandler: @escaping (URL?) -> Void) {
-        manager.download(download, decideDestinationUsing: response, suggestedFilename: suggestedFilename, completionHandler: completionHandler)
-    }
-
-    func downloadDidFinish(_ download: WKDownload) {
-        manager.downloadDidFinish(download)
-    }
-
-    func download(_ download: WKDownload, didFailWithError error: Error) {
-        manager.download(download, didFailWithError: error)
-    }
-
-    func downloadDidCancel(_ download: WKDownload) {
-        manager.downloadDidCancel(download)
     }
 }

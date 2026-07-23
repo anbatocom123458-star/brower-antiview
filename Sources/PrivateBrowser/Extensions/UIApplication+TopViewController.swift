@@ -7,8 +7,8 @@ extension UIApplication {
     func topMostViewController() -> UIViewController? {
         guard let keyWindow = connectedScenes
             .compactMap({ $0 as? UIWindowScene })
-            .flatMap({ $0.windows })
-            .first(where: { $0.isKeyWindow }),
+            .compactMap({ $0.keyWindow })
+            .first,
             let root = keyWindow.rootViewController
         else { return nil }
 
