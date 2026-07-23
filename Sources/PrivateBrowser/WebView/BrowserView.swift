@@ -27,10 +27,6 @@ struct BrowserView: UIViewRepresentable {
         config.allowsInlineMediaPlayback = true
         config.mediaTypesRequiringUserActionForPlayback = []
         config.defaultWebpagePreferences.allowsContentJavaScript = true
-        // Cho phép download
-        if #available(iOS 18.0, *) {
-            config.allowsExpensiveNetworkAccess = true
-        }
 
         let ucc = config.userContentController
         if blockWebRTC {
