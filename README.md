@@ -19,43 +19,91 @@ Trình duyệt web cao cấp kết hợp **Hệ thống bảo vệ quyền riên
 </div>
 
 
-## 🧊 Có gì mới trong phiên bản 3.3:
-- **Điều chỉnh độ sáng (Brightness Control)**: Trượt để tăng/giảm độ sáng màn hình trực tiếp từ app. Tiết kiệm pin, thoải mái sử dụng trong bóng tối. Tự lưu giá trị đã chọn và khôi phục khi mở lại app.
-- **Developer Tools (F12)**: Xem thông tin chi tiết về trang web giống F12 trên máy tính — bao gồm: thông tin trang (URL, title, meta tags), HTML source code, console log lỗi JavaScript, cookies & storage info. Truy cập qua nút wrench trên thanh công cụ hoặc từ Menu.
-- **Khôi phục phiên (Session Restore)**: Tự động lưu trạng thái tab và khôi phục khi mở lại app — không mất dữ liệu giữa các phiên. Có thể tắt trong cài đặt.
-- **Lưu trạng thái tự động**: Toàn bộ trạng thái tab được lưu khi app chuyển sang nền, đảm bảo dữ liệu không bị mất.
-- **Nâng cấp giao diện hiện đại**: Thanh công cụ dưới cùng thêm nút Developer Tools, menu cài đặt thêm phần điều chỉnh độ sáng và các tính năng mới.
-- **Cải tiến ổn định**: Xử lý lỗi tốt hơn, tối ưu hiệu năng, mượt mà hơn khi chuyển tab.
+## 🧊 Phiên bản 3.3 — Floating Window & Virtual Cursor
 
-## 🧊 Có gì mới trong phiên bản 3.2:
-- **Tải xuống File (Download Manager)**: Tải file trực tiếp từ trình duyệt — hỗ trợ mọi loại file. File tải về chế độ riêng tư tự động xóa khi hoàn thành. Truy cập qua nút ↓ trên thanh công cụ.
-- **Userscript Manager (giống Tampermonkey)**: Dán code JavaScript tự chạy trên trang web — thay thế cho Chrome Extension trên iOS (giới hạn WKWebView). Hỗ trợ matching URL, chạy lúc Document Start/End, Top frame/All frames.
-- **Chế độ Cửa sổ (Window Mode)**: Hiển thị tab dưới dạng các cửa sổ nhỏ gọn — giống trải nghiệm desktop/laptop. Có dock ở dưới cùng với các nút nhanh: Tab mới, Tab riêng tư, Đóng hết, Cài đặt.
-- **Lưu trữ dữ liệu bền vững**: Dữ liệu duyệt web ở chế độ thường được lưu trữ khi thoát app — không mất dữ liệu giữa các phiên.
-- **Tách tab thường / tab riêng tư**: Quản lý rõ ràng hai loại tab — tab riêng tư hiển thị riêng biệt để tránh nhầm lẫn.
-- **Nâng cấp hiệu năng & ổn định**: Tối ưu bộ nhớ, cải thiện xử lý lỗi, mượt mà hơn khi chuyển tab.
+### Con trỏ ảo toàn cục (Global Virtual Cursor)
+- **Single cursor across entire screen** — một con trỏ duy nhất di chuyển tự do trên toàn màn hình, không bị giới hạn trong bất kỳ cửa sổ nào
+- Trackpad-style: vuốt = di chuyển, chạm = click, giữ + kéo = drag
+- Cursor tự động chọn cửa sổ đang chứa vị trí click
+- Hiệu ứng ripple khi click, drag trail particles
 
-## 🧊 Có gì mới trong phiên bản 3.1:
-- **Nâng cấp Hiệu ứng Liquid Glass (iOS 26+)**: Tối ưu hóa hiệu ứng kính trong suốt và phản hồi thị giác trên toàn bộ giao diện app (`.glassEffect()`, `GlassEffectContainer`, nút bấm kính `.glass` / `.glassProminent`). Cho trải nghiệm vuốt chạm, khúc xạ ánh sáng sống động và mượt mà tuyệt đối. Tự động rơi về Glassmorphism tương thích hoàn hảo trên các phiên bản iOS cũ hơn (iOS 16–25) mà không gây crash hay lag.
-- **Thêm Tab Riêng Tư & Quản Lý Đa Tab (Tab Grid)**: Hỗ trợ duyệt web đa nhiệm với giao diện quản lý tab lưới trực quan (Tab Grid View). Dễ dàng chuyển đổi, tạo tab riêng tư mới hoặc đóng tất cả tab cùng lúc. Mỗi tab hoạt động độc lập trong môi trường cách ly an toàn.
-- **Chặn Trình Theo Dõi & Quảng Cáo Nâng Cao (Content Blocker)**: Tích hợp bộ quy tắc chặn tầng network chuẩn Safari `WKContentRuleList`. Chặn triệt để các trình theo dõi, quảng cáo phiền phức và mã độc theo dõi trước khi nội dung được tải về, giúp tăng tốc độ load trang đến 40% và tiết kiệm dung lượng mạng.
-- **Tự Động Lọc Tham Số Theo Dõi URL**: Tự động xoá sạch các tham số theo dõi hành vi dùng trong marketing (như `utm_*`, `fbclid`, `gclid`, `msclkid`, `mc_eid`...) khỏi liên kết ngay khi bấm mở hoặc gõ tìm kiếm.
-- **Chống Dấu Vân Tay Thiết Bị (Fingerprint Protection) Nâng Cao**: Giả lập/làm nhiễu Canvas, WebGL, AudioContext; ẩn thông tin CPU (`hardwareConcurrency`), RAM (`deviceMemory`), các plugin trình duyệt, chuẩn hóa múi giờ UTC và ẩn `document.referrer` để chặn các công ty quảng cáo nhận dạng thiết bị.
-- **Chống Lộ IP & Chặn WebRTC / GeoLocation**: Ngăn chặn tuyệt đối các lỗ hổng rò rỉ IP qua WebRTC, chặn tự động yêu cầu vị trí địa lý, Battery API và loại bỏ hoàn toàn các khung iframe độc hại/quảng cáo chèn ẩn.
-- **Bảo Vệ Quyền Riêng Tư Tức Thì**:
-  - **Màn hình bảo vệ (Privacy Shield)**: Tự động che phủ màn hình ứng dụng khi chuyển sang App Switcher hoặc khi phát hiện thiết bị đang bị quay màn hình (`UIScreen.isCaptured`).
-  - **Tự động dọn dẹp khi rời App**: Xóa sạch toàn bộ Session, Cookies và Cache ngay khi app chuyển sang chế độ chạy ngầm.
-  - **Nút "Phiên mới" nhanh**: Xóa sạch tức thì toàn bộ dữ liệu duyệt web hiện tại và đưa người dùng về trang chủ chỉ với 1 chạm từ Menu.
-- **Trải Nghiệm Người Dùng Tối Ưu**:
-  - Đầy đủ tính năng Zoom trang (25% → 200%), Menu cài đặt riêng linh hoạt, chọn công cụ tìm kiếm mặc định (DuckDuckGo, Google, Bing, Brave, Yahoo).
-  - Xử lý mượt mà các hộp thoại JavaScript (`alert`, `confirm`, `prompt`) và các luồng liên kết hệ thống (`tel:`, `mailto:`, `sms:`).
-## 🛠️ Khắc phục lỗi & Tăng độ ổn định từ bản v3.0:
-- **Sửa lỗi dính Captcha / Cloudflare Turnstile**: Loại bỏ việc can thiệp ngẫu nhiên vào Canvas/AudioContext và giả mạo mâu thuẫn giữa `navigator.platform` với `userAgent` — nguyên nhân chính ở v3.0 khiến các hệ thống chống bot như Cloudflare, reCAPTCHA v3 liên tục yêu cầu xác minh "tôi không phải robot".
-- **Sửa lỗi trang bị "treo" khi hiện hộp thoại JS**: Thêm đầy đủ trình xử lý cho `alert()`, `confirm()`, và `prompt()` của JavaScript.
-- **Sửa lỗi vòng lặp reload (Loop Reload) khi gõ URL**: Tách hoàn toàn logic điều hướng ra khỏi vòng đời render của SwiftUI (`updateUIView`), chuyển sang điều khiển tường minh bằng `BrowserController`.
-- **Bắt lỗi JavaScript Runtime (React / Next.js Exception)**: Lắng nghe các lỗi uncaught exception/unhandled rejection từ JS client-side (như lỗi "Application error" của DuckDuckGo) để tự động hiển thị màn hình thông báo lỗi kèm nút **"Thử lại"** thay vì bị trang trắng/màn hình đen im lặng.
-- **Khắc phục rò rỉ bộ nhớ (Memory Leak)**: Dọn dẹp chính xác các `KVO Observer` và gỡ bỏ `ScriptMessageHandler` trong `dismantleUIView` khi đóng tab/WebView.
-- **Xử lý an toàn các URL Scheme ngoại lệ**: Chuyển giao các liên kết dạng `tel:`, `mailto:`, `sms:`, `facetime:` cho hệ thống iOS xử lý thay vì gây đơ hoặc crash WebView.
+### Cửa sổ nổi nâng cao (Floating Window)
+- Kéo di chuyển mượt mà với snap-to-edge
+- Resize từ mọi góc/cạnh cửa sổ
+- Tỉ lệ khung hình tùy chọn (16:9, 4:3, 1:1, ...)
+- Bubble/PiP mode — thu nhỏ thành bong bóng nổi
+- Reader Mode với AI tóm tắt bài viết
+- Browser toolbar tích hợp (URL, navigation, reload)
+
+### Dock & Đa cửa sổ
+- Glassmorphism dock ở dưới cùng
+- Multi-window tiling (2 hoặc 4 cửa sổ lưới)
+- Virtual cursor toggle từ dock
+- Tab management trực quan
+
+---
+
+## 🧊 Phiên bản 4.1 — 20+ Tính năng mới
+
+### Tính năng mới (20+)
+| # | Tính năng | Mô tả |
+|---|-----------|-------|
+| 1 | **HapticManager** | Centralized haptic feedback — xóa 10+ hàm trùng lặp |
+| 2 | **BookmarkManager** | Lưu bookmark + tab đã đóng (20 tab bộ nhớ) |
+| 3 | **FindInPage** | Tìm text trong trang, prev/next, đếm kết quả |
+| 4 | **NightMode** | Bộ lọc ánh sáng xanh ban đêm, điều chỉnh cường độ |
+| 5 | **FontSizeManager** | Tăng/giảm cỡ chữ nhanh +/- (60%-200%) |
+| 6 | **PrivacyGrade** | Đánh giá A-F mức riêng tư real-time trên URL bar |
+| 7 | **SitePermissionManager** | Quản lý quyền camera/mic/location theo từng trang |
+| 8 | **StorageMonitor** | Theo dõi dung lượng dữ liệu tiết kiệm |
+| 9 | **ClipboardGuard** | Tự xóa URL sao chép sau 30 giây |
+| 10 | **QuickSettingsPanel** | Truy cập nhanh toggle từ toolbar |
+| 11 | **BookmarkListView** | Danh sách bookmark với search |
+| 12 | **FindInPageView** | UI Find on Page với result counter |
+| 13 | **NightModeOverlay** | Full-screen blue light filter |
+| 14 | **PrivacyGradeBadge** | Badge màu A-F trên URL bar |
+| 15 | **SiteInfoView** | Thông tin trang (tap lock icon) |
+| 16 | **StorageStatsView** | Hiển thị thống kê lưu trữ |
+| 17 | **HTTPS-Only Mode** | Tự chuyển HTTP → HTTPS |
+| 18 | **Do Not Track Header** | Gửi yêu cầu DNT đến mọi trang |
+| 19 | **Clipboard Guard** | Bảo vệ clipboard tự động |
+| 20 | **Privacy Grade Toggle** | Bật/tắt hiển thị A-F grade |
+
+### Sửa lỗi & Ổn định
+- Fixed `MARKETING_VERSION` trong project.yml
+- Fixed `print()` trong production code (`#if DEBUG`)
+- Fixed `PrivacyReport` thread safety (`DispatchQueue.main.async`)
+- Fixed deprecated `UIScreen.main.bounds` → `UIWindowScene` bounds
+- Fixed `SitePermissionManager` KVC usage
+
+---
+
+## 🧊 Các phiên bản trước
+
+### Phiên bản 3.2
+- **Tải xuống File (Download Manager)**: Tải file trực tiếp từ trình duyệt — hỗ trợ mọi loại file. File tải về chế độ riêng tư tự động xóa khi hoàn thành.
+- **Userscript Manager (giống Tampermonkey)**: Dán code JavaScript tự chạy trên trang web — thay thế cho Chrome Extension trên iOS.
+- **Chế độ Cửa sổ (Window Mode)**: Hiển thị tab dưới dạng các cửa sổ nhỏ gọn — giống trải nghiệm desktop/laptop.
+
+### Phiên bản 3.1
+- **Liquid Glass (iOS 26+)**: Hiệu ứng kính trong suốt trên toàn bộ giao diện.
+- **Tab Riêng Tư & Tab Grid**: Quản lý tab lưới trực quan, tab riêng tư cách ly an toàn.
+- **Content Blocker**: Chặn trình theo dõi & quảng cáo ở tầng network chuẩn Safari.
+- **Auto-strip Tracking URL**: Tự động xoá `utm_*`, `fbclid`, `gclid` khỏi URL.
+- **Fingerprint Protection**: Giả lập Canvas, WebGL, AudioContext; ẩn CPU, RAM, plugins.
+- **Anti-IP Leak**: Chặn WebRTC, GeoLocation, Battery API.
+- **Privacy Shield**: Tự che màn hình khi App Switcher hoặc screen recording.
+
+---
+
+## 🛠️ Khắc phục lỗi từ bản v3.0
+- **Sửa lỗi Captcha/Cloudflare Turnstile**: Loại bỏ can thiệp Canvas/AudioContext mâu thuẫn.
+- **Sửa lỗi treo khi hiện hộp thoại JS**: Xử lý đầy đủ `alert()`, `confirm()`, `prompt()`.
+- **Sửa lỗi vòng lặp reload**: Tách logic điều hướng khỏi SwiftUI render loop.
+- **Bắt lỗi JavaScript Runtime**: Hiển thị màn hình lỗi thay vì trắng màn hình.
+- **Khắc phục rò rỉ bộ nhớ**: Dọn dẹp KVO Observer và ScriptMessageHandler chính xác.
+
+---
 
 ## Cách dùng
 1. Tạo repo GitHub, push toàn bộ file trên
