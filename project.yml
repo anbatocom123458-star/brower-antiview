@@ -3,8 +3,6 @@ options:
   bundleIdPrefix: com.privatebrowser
   deploymentTarget:
     iOS: "16.0"
-  # Cần Xcode 26+ để biên dịch các API Liquid Glass (glassEffect, GlassEffectContainer...).
-  # Ứng dụng vẫn cài được từ iOS 16 nhờ được bọc trong `if #available(iOS 26.0, *)`.
   xcodeVersion: "26.0"
   createIntermediateGroups: true
 
@@ -33,5 +31,5 @@ targets:
         INFOPLIST_FILE: Sources/PrivateBrowser/Info.plist
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         LD_RUNPATH_SEARCH_PATHS: ["$(inherited)", "@executable_path/Frameworks"]
-        MARKETING_VERSION: "3.0"
+        MARKETING_VERSION: "3.1"
         CURRENT_PROJECT_VERSION: "1"
