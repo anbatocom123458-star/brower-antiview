@@ -28,7 +28,7 @@ struct BrowserView: UIViewRepresentable {
         config.mediaTypesRequiringUserActionForPlayback = []
         config.defaultWebpagePreferences.allowsContentJavaScript = true
         // Cho phép download
-        if #available(iOS 17.0, *) {
+        if #available(iOS 18.0, *) {
             config.allowsExpensiveNetworkAccess = true
         }
 
