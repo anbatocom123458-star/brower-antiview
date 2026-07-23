@@ -1,5 +1,8 @@
+# 🛡️ Private Browser iOS — v3.1 
+> **Developed & Maintained with passion by HUÂN NGÔ** 🚀
 
-# Private Browser iOS — v3.1 (Liquid Glass + Tab Riêng Tư & Chặn Trình Theo Dõi Nâng Cao)
+[![Author](https://img.shields.io/badge/Author-Huân%20Ngô-blue?style=for-the-badge&logo=swift)](https://github.com/your-username)
+[![iOS](https://img.shields.io/badge/iOS-16.0%2B-black?style=for-the-badge&logo=apple)](https://apple.com)
 
 Trình duyệt web ẩn danh & bảo mật cao cấp cho iPhone — **không cần Xcode app, không cần Apple Developer**.
 
