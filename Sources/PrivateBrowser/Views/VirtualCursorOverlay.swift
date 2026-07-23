@@ -1,159 +1,121 @@
 import SwiftUI
 
-/// Con trỏ ảo mô phỏng Trackpad Mode — toàn bộ vùng màn hình/tabloi
-/// trở thành bàn rê chuột (Trackpad). Vuốt ngón tay = con trỏ di chuyển
-/// TƯƠNG ĐỐI (relative delta), giống hệt Trackpad trên MacBook.
+/// Con trỏ ảo toàn cục — di chuyển tự do trên TOÀN MÀN HÌNH,
+/// không bị giới hạn trong bất kỳ cửa sổ nào. Trackpad-style:
+/// vuốt = di chuyển, chạm = click, giữ + kéo = drag.
 ///
-/// Cử chỉ:
-/// - Vuốt = di chuyển con trỏ (relative delta)
-/// - Chạm nhẹ (tap) = Click chuột
-/// - Nhấn giữ + kéo = Drag
-///
-/// v3.5: Trackpad relative movement mode.
+/// v3.3: Single global cursor overlay — works across all floating windows.
 struct VirtualCursorOverlay: View {
-    @Binding var cursorPosition: CGPoint
-    let windowSize: CGSize
+    @ObservedObject var floatingManager: FloatingWindowManager
+    var tabsManager: TabsManager
     var hapticsEnabled: Bool
-    var onTap: (() -> Void)?
-    var onDragStart: (() -> Void)?
-    var onDragChanged: ((CGSize) -> Void)?
-    var onDragEnd: (() -> Void)?
+    var onCursorTap: ((CGPoint) -> Void)?
 
     @State private var isPressed: Bool = false
-    @State private var tapLocation: CGPoint? = nil
     @State private var showTapIndicator: Bool = false
+    @State private var tapLocation: CGPoint = .zero
     @State private var isDragging: Bool = false
-
-    // Track the previous touch location for incremental delta calculation
     @State private var lastTouchLocation: CGPoint = .zero
 
-    // Trackpad sensitivity — how fast cursor moves relative to finger
-    private let sensitivity: CGFloat = 1.5
+    private let sensitivity: CGFloat = 1.8
+    private let cursorSize: CGFloat = 24
 
     var body: some View {
         GeometryReader { geo in
             ZStack {
-                // Cursor arrow
+                // Cursor arrow — positioned globally on screen
                 Image(systemName: "cursorarrow")
                     .font(.system(size: 22, weight: .light))
                     .foregroundColor(.white)
-                    .shadow(color: .black.opacity(0.7), radius: 3, x: 1, y: 1)
-                    .shadow(color: .cyan.opacity(isPressed ? 0.3 : 0), radius: 4, x: 0, y: 0)
-                    .position(cursorPosition)
-                    .scaleEffect(isPressed ? 0.85 : 1.0)
+                    .shadow(color: .black.opacity(0.8), radius: 4, x: 1, y: 2)
+                    .shadow(color: .cyan.opacity(isPressed ? 0.4 : 0.1), radius: 6, x: 0, y: 0)
+                    .position(floatingManager.globalCursorPosition)
+                    .scaleEffect(isPressed ? 0.8 : 1.0)
                     .animation(.easeInOut(duration: 0.1), value: isPressed)
 
-                // Tap/click ripple indicator
+                // Cursor dot (subtle center point)
+                Circle()
+                    .fill(Color.cyan.opacity(0.8))
+                    .frame(width: 3, height: 3)
+                    .position(floatingManager.globalCursorPosition)
+
+                // Tap ripple indicator
                 if showTapIndicator {
                     Circle()
-                        .stroke(Color.cyan.opacity(0.6), lineWidth: 1.5)
-                        .frame(width: 28, height: 28)
-                        .position(tapLocation ?? cursorPosition)
-                        .scaleEffect(showTapIndicator ? 1.2 : 0.5)
+                        .stroke(Color.cyan.opacity(0.7), lineWidth: 2)
+                        .frame(width: 30, height: 30)
+                        .position(tapLocation)
+                        .scaleEffect(showTapIndicator ? 1.5 : 0.3)
                         .opacity(showTapIndicator ? 0.0 : 1.0)
-                        .animation(.easeOut(duration: 0.4), value: showTapIndicator)
+                        .animation(.easeOut(duration: 0.5), value: showTapIndicator)
                         .onAppear {
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                                 showTapIndicator = false
                             }
                         }
                 }
 
-                // Drag trail (subtle circle showing cursor during drag)
+                // Drag trail particles
                 if isDragging {
-                    Circle()
-                        .fill(Color.cyan.opacity(0.15))
-                        .frame(width: 6, height: 6)
-                        .position(cursorPosition)
+                    ForEach(0..<3) { i in
+                        Circle()
+                            .fill(Color.cyan.opacity(0.15 - Double(i) * 0.04))
+                            .frame(width: CGFloat(6 - i * 2), height: CGFloat(6 - i * 2))
+                            .position(
+                                x: floatingManager.globalCursorPosition.x - CGFloat(i) * 4,
+                                y: floatingManager.globalCursorPosition.y - CGFloat(i) * 4
+                            )
+                    }
                 }
             }
-            .frame(width: windowSize.width, height: windowSize.height)
+            .frame(width: geo.size.width, height: geo.size.height)
             .contentShape(Rectangle())
             .gesture(trackpadGesture)
         }
         .allowsHitTesting(true)
     }
 
-    // MARK: - Trackpad Gesture (Relative Movement)
+    // MARK: - Trackpad Gesture
 
     private var trackpadGesture: some Gesture {
-        DragGesture(minimumDistance: 0, coordinateSpace: .local)
+        DragGesture(minimumDistance: 0, coordinateSpace: .global)
             .onChanged { value in
                 let currentLocation = value.location
 
                 if !isDragging {
-                    // First touch — record start, don't move yet
                     isDragging = true
                     isPressed = true
                     lastTouchLocation = currentLocation
-                    onDragStart?()
-
-                    if hapticsEnabled {
-                        UIImpactFeedbackGenerator(style: .soft).impactOccurred()
-                    }
+                    HapticManager.impact(.soft)
                     return
                 }
 
-                // INCREMENTAL DELTA: difference between current and previous touch
                 let deltaX = (currentLocation.x - lastTouchLocation.x) * sensitivity
                 let deltaY = (currentLocation.y - lastTouchLocation.y) * sensitivity
 
-                // Move cursor by the delta (relative movement)
-                let newX = max(0, min(windowSize.width, cursorPosition.x + deltaX))
-                let newY = max(0, min(windowSize.height, cursorPosition.y + deltaY))
+                let screen = UIScreen.main.bounds
+                let newX = max(0, min(screen.width, floatingManager.globalCursorPosition.x + deltaX))
+                let newY = max(0, min(screen.height, floatingManager.globalCursorPosition.y + deltaY))
 
-                cursorPosition = CGPoint(x: newX, y: newY)
-
-                // Update last touch for next frame
+                floatingManager.globalCursorPosition = CGPoint(x: newX, y: newY)
                 lastTouchLocation = currentLocation
-
-                let delta = CGSize(width: deltaX, height: deltaY)
-                onDragChanged?(delta)
             }
             .onEnded { value in
                 let totalTranslation = value.translation
-                let wasTap = abs(totalTranslation.width) < 3 && abs(totalTranslation.height) < 3
+                let wasTap = abs(totalTranslation.width) < 5 && abs(totalTranslation.height) < 5
 
                 if wasTap {
-                    // This was a TAP — trigger click at current cursor position
-                    tapLocation = cursorPosition
+                    tapLocation = floatingManager.globalCursorPosition
                     showTapIndicator = true
-                    onTap?()
-
-                    if hapticsEnabled {
-                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                    }
+                    HapticManager.impact(.light)
+                    onCursorTap?(floatingManager.globalCursorPosition)
                 } else {
-                    // This was a drag — trigger haptic on release
-                    if hapticsEnabled {
-                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                    }
+                    HapticManager.impact(.medium)
                 }
 
                 isDragging = false
                 isPressed = false
                 lastTouchLocation = .zero
-                onDragEnd?()
             }
     }
 }
-
-// MARK: - Preview
-
-#if DEBUG
-struct VirtualCursorOverlay_Previews: PreviewProvider {
-    static var previews: some View {
-        VirtualCursorOverlay(
-            cursorPosition: .constant(CGPoint(x: 150, y: 200)),
-            windowSize: CGSize(width: 380, height: 520),
-            hapticsEnabled: false,
-            onTap: {},
-            onDragStart: {},
-            onDragChanged: { _ in },
-            onDragEnd: {}
-        )
-        .background(Color.black)
-        .previewLayout(.fixed(width: 380, height: 520))
-    }
-}
-#endif

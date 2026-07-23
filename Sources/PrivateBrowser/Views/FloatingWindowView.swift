@@ -75,26 +75,6 @@ struct FloatingWindowView: View {
                 )
         )
         .overlay(
-            // Virtual cursor overlay (Trackpad Mode)
-            Group {
-                if floatingManager.globalVirtualCursorEnabled {
-                    VirtualCursorOverlay(
-                        cursorPosition: $tab.virtualCursorLocalPosition,
-                        windowSize: tab.floatingSize,
-                        hapticsEnabled: hapticsEnabled,
-                        onTap: {
-                            if hapticsEnabled {
-                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                            }
-                        },
-                        onDragStart: { },
-                        onDragChanged: { delta in },
-                        onDragEnd: { }
-                    )
-                }
-            }
-        )
-        .overlay(
             // Invisible resize handles on all edges/corners
             resizeOverlay
         )
@@ -130,17 +110,17 @@ struct FloatingWindowView: View {
             // Traffic light buttons
             HStack(spacing: 6) {
                 controlButton(icon: "xmark", color: .red) {
-                    haptic(.medium)
+                    HapticManager.impact(.medium)
                     withAnimation(.spring(response: 0.3)) {
                         tabsManager.close(tab)
                     }
                 }
                 controlButton(icon: "minus", color: .yellow) {
-                    haptic(.light)
+                    HapticManager.impact(.light)
                     floatingManager.minimizeToBubble(tab, allTabs: tabsManager.tabs)
                 }
                 controlButton(icon: "arrow.up.left.and.arrow.down.right", color: .green) {
-                    haptic(.light)
+                    HapticManager.impact(.light)
                     toggleMaximize()
                 }
             }
@@ -170,7 +150,7 @@ struct FloatingWindowView: View {
             HStack(spacing: 8) {
                 // Tab switcher
                 Button(action: {
-                    haptic(.light)
+                    HapticManager.impact(.light)
                     showTabSwitcher.toggle()
                 }) {
                     Text("\(tabsManager.tabCount)")
@@ -186,7 +166,7 @@ struct FloatingWindowView: View {
 
                 // Browser bar toggle
                 Button(action: {
-                    haptic(.light)
+                    HapticManager.impact(.light)
                     showBrowserBar.toggle()
                 }) {
                     Image(systemName: "magnifyingglass")
@@ -197,7 +177,7 @@ struct FloatingWindowView: View {
 
                 // Reader mode toggle
                 Button(action: {
-                    haptic(.light)
+                    HapticManager.impact(.light)
                     toggleReaderMode()
                 }) {
                     Image(systemName: tab.isReaderMode ? "book.fill" : "book")
@@ -208,7 +188,7 @@ struct FloatingWindowView: View {
 
                 // Aspect ratio menu
                 Button(action: {
-                    haptic(.light)
+                    HapticManager.impact(.light)
                     showAspectRatioMenu.toggle()
                 }) {
                     Image(systemName: "aspectratio")
@@ -258,7 +238,7 @@ struct FloatingWindowView: View {
                 }
         )
         .onTapGesture {
-            haptic(.light)
+            HapticManager.impact(.light)
             tabsManager.select(tab)
             floatingManager.bringToFront(tab, in: tabsManager)
         }
@@ -575,7 +555,7 @@ struct FloatingWindowView: View {
                         x: tab.bubblePosition.x + value.translation.width,
                         y: tab.bubblePosition.y + value.translation.height
                     )
-                    let screen = UIScreen.main.bounds
+                    let screen = screenBounds
                     let halfSize = bubbleSize / 2
 
                     // Snap to nearest edge
@@ -597,11 +577,11 @@ struct FloatingWindowView: View {
                 }
         )
         .onTapGesture {
-            haptic(.medium)
+            HapticManager.impact(.medium)
             floatingManager.restoreFromBubble(tab)
         }
         .onLongPressGesture(minimumDuration: 0.3) {
-            haptic(.heavy)
+            HapticManager.impact(.heavy)
             // Long press = close
             withAnimation(.spring(response: 0.3)) {
                 tabsManager.close(tab)
@@ -643,6 +623,18 @@ struct FloatingWindowView: View {
         tab.id == tabsManager.activeTabId
     }
 
+    private var screenBounds: CGRect {
+        Self.screenBoundsHelper
+    }
+
+    static var screenBoundsHelper: CGRect {
+        if let scene = UIApplication.shared.connectedScenes.first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene,
+           let window = scene.windows.first {
+            return window.bounds
+        }
+        return UIScreen.main.bounds
+    }
+
     private func saveResizeState() {
         isResizing = true
         resizeStartSize = tab.floatingSize
@@ -651,7 +643,7 @@ struct FloatingWindowView: View {
 
     private func toggleMaximize() {
         withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-            let screen = UIScreen.main.bounds
+            let screen = screenBounds
             if tab.floatingSize.width > 400 {
                 let restoreSize = floatingManager.defaultWindowSize
                 tab.floatingSize = restoreSize
@@ -712,7 +704,7 @@ struct FloatingWindowView: View {
 
     private func constrainPosition() {
         isResizing = false
-        let screen = UIScreen.main.bounds
+        let screen = screenBounds
         let maxX = screen.width - tab.floatingSize.width
         let maxY = screen.height - tab.floatingSize.height
         let minX: CGFloat = 0
@@ -729,7 +721,7 @@ struct FloatingWindowView: View {
     }
 
     private func snapIfNeeded() {
-        let screen = UIScreen.main.bounds
+        let screen = screenBounds
         let snapThreshold: CGFloat = 20
         let pos = tab.floatingPosition
 
@@ -747,7 +739,7 @@ struct FloatingWindowView: View {
 
     private func navButton(icon: String, isEnabled: Bool, action: @escaping () -> Void) -> some View {
         Button(action: {
-            haptic(.light)
+            HapticManager.impact(.light)
             action()
         }) {
             Image(systemName: icon)
@@ -768,11 +760,6 @@ struct FloatingWindowView: View {
                 .background(Circle().fill(color.opacity(0.3)))
         }
         .buttonStyle(.plain)
-    }
-
-    private func haptic(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
-        guard hapticsEnabled else { return }
-        UIImpactFeedbackGenerator(style: style).impactOccurred()
     }
 }
 
@@ -840,9 +827,10 @@ private struct ResizeZone: View {
 
     private func handleDragChanged(_ value: DragGesture.Value) {
         let minW: CGFloat = 280
-        let maxW: CGFloat = UIScreen.main.bounds.width - 40
+        let screen = FloatingWindowView.screenBoundsHelper
+        let maxW: CGFloat = screen.width - 40
         let minH: CGFloat = 320
-        let maxH: CGFloat = UIScreen.main.bounds.height - 80
+        let maxH: CGFloat = screen.height - 80
 
         var deltaW: CGFloat = 0
         var deltaH: CGFloat = 0
@@ -915,7 +903,8 @@ private struct BottomResizeZone: View {
                         }
                         // Only vertical resize — ignore horizontal translation
                         let minH: CGFloat = 320
-                        let maxH: CGFloat = UIScreen.main.bounds.height - 80
+                        let screen = FloatingWindowView.screenBoundsHelper
+                        let maxH: CGFloat = screen.height - 80
                         let newH = max(minH, min(maxH, startSize.height + value.translation.height))
                         tab.floatingSize = CGSize(width: tab.floatingSize.width, height: newH)
                     }

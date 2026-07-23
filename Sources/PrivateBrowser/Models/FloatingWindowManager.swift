@@ -13,8 +13,11 @@ final class FloatingWindowManager: ObservableObject {
     @Published var isFloatingMode: Bool = false
     @Published var nextWindowOrder: Int = 0
 
-    /// Con trỏ ảo toàn cục — khi bật, mọi cửa sổ đều hiển thị con trỏ
+    /// Con trỏ ảo toàn cục — khi bật, một con trỏ duy nhất di chuyển tự do trên toàn màn hình
     @Published var globalVirtualCursorEnabled: Bool = false
+
+    /// Vị trí con trỏ ảo toàn cục (tọa độ screen, tính từ góc trái trên)
+    @Published var globalCursorPosition: CGPoint = CGPoint(x: 200, y: 400)
 
     /// Tỉ lệ khung hình mặc định cho cửa sổ mới
     @Published var defaultAspectRatio: AspectRatioPreset = .free

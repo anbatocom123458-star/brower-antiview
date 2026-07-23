@@ -42,8 +42,6 @@ struct FloatingModeView: View {
             // Bubble mode tabs (floating over everything)
             ForEach(tabsManager.tabs) { tab in
                 if tab.isBubbleMode {
-                    // Bubble is rendered inside FloatingWindowView
-                    // but we need to show it here since FloatingWindowView is hidden
                     BubbleOverlay(
                         tab: tab,
                         floatingManager: floatingManager,
@@ -51,6 +49,19 @@ struct FloatingModeView: View {
                         hapticsEnabled: hapticsEnabled
                     )
                 }
+            }
+
+            // Global virtual cursor overlay (single cursor across entire screen)
+            if floatingManager.globalVirtualCursorEnabled {
+                VirtualCursorOverlay(
+                    floatingManager: floatingManager,
+                    tabsManager: tabsManager,
+                    hapticsEnabled: hapticsEnabled,
+                    onCursorTap: { screenPosition in
+                        handleCursorTap(at: screenPosition)
+                    }
+                )
+                .zIndex(99999)
             }
 
             // Dock
@@ -65,7 +76,7 @@ struct FloatingModeView: View {
                 desktopMode: desktopMode,
                 hapticsEnabled: hapticsEnabled,
                 onExitFloatingMode: {
-                    haptic(.heavy)
+                    HapticManager.impact(.heavy)
                     floatingManager.exitFloatingMode(to: tabsManager)
                     withAnimation(.spring(response: 0.3)) {
                         isPresented = false
@@ -76,6 +87,30 @@ struct FloatingModeView: View {
         .ignoresSafeArea()
         .onAppear {
             floatingManager.enterFloatingMode(from: tabsManager)
+        }
+    }
+
+    // MARK: - Handle Cursor Tap
+
+    /// Xử lý click từ con trỏ ảo — tìm cửa sổ chứa vị trí click và trigger tap
+    private func handleCursorTap(at screenPosition: CGPoint) {
+        // Find the topmost window at the tap position
+        let sortedTabs = tabsManager.tabs
+            .filter { $0.isFloating && !$0.isMinimizedToDock && !$0.isBubbleMode }
+            .sorted { $0.windowOrder > $1.windowOrder }
+
+        for tab in sortedTabs {
+            let windowFrame = CGRect(
+                x: tab.floatingPosition.x,
+                y: tab.floatingPosition.y,
+                width: tab.floatingSize.width,
+                height: tab.floatingSize.height
+            )
+            if windowFrame.contains(screenPosition) {
+                tabsManager.select(tab)
+                floatingManager.bringToFront(tab, in: tabsManager)
+                return
+            }
         }
     }
 
@@ -149,10 +184,7 @@ struct FloatingModeView: View {
         }
     }
 
-    private func haptic(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
-        guard hapticsEnabled else { return }
-        UIImpactFeedbackGenerator(style: style).impactOccurred()
-    }
+    // Desktop background removed haptic function - now uses HapticManager
 }
 
 // MARK: - Bubble Overlay
@@ -167,6 +199,14 @@ private struct BubbleOverlay: View {
     @State private var dragOffset: CGSize = .zero
 
     private let bubbleSize: CGFloat = 56
+
+    private var screenBounds: CGRect {
+        if let scene = UIApplication.shared.connectedScenes.first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene,
+           let window = scene.windows.first {
+            return window.bounds
+        }
+        return UIScreen.main.bounds
+    }
 
     var body: some View {
         ZStack {
@@ -218,7 +258,7 @@ private struct BubbleOverlay: View {
                         x: tab.bubblePosition.x + value.translation.width,
                         y: tab.bubblePosition.y + value.translation.height
                     )
-                    let screen = UIScreen.main.bounds
+                    let screen = screenBounds
                     let halfSize = bubbleSize / 2
                     let clampedX = max(halfSize, min(screen.width - halfSize, newPos.x))
                     let clampedY = max(halfSize, min(screen.height - halfSize, newPos.y))
@@ -232,15 +272,11 @@ private struct BubbleOverlay: View {
                 }
         )
         .onTapGesture {
-            if hapticsEnabled {
-                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-            }
+            HapticManager.impact(.medium)
             floatingManager.restoreFromBubble(tab)
         }
         .onLongPressGesture(minimumDuration: 0.3) {
-            if hapticsEnabled {
-                UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
-            }
+            HapticManager.impact(.heavy)
             withAnimation(.spring(response: 0.3)) {
                 tabsManager.close(tab)
             }

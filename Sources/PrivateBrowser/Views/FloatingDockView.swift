@@ -47,12 +47,12 @@ struct FloatingDockView: View {
             HStack(spacing: 6) {
                 // Group 1: Core actions
                 dockIconButton(icon: "xmark.circle.fill", color: .red) {
-                    haptic(.medium)
+                    HapticManager.impact(.medium)
                     onExitFloatingMode()
                 }
 
                 dockIconButton(icon: "plus.circle.fill", color: .cyan) {
-                    haptic(.medium)
+                    HapticManager.impact(.medium)
                     let newTab = tabsManager.openNewTab()
                     floatingManager.addFloatingTab(newTab, in: tabsManager)
                 }
@@ -71,7 +71,7 @@ struct FloatingDockView: View {
                                 isActive: tab.id == tabsManager.activeTabId,
                                 hapticsEnabled: hapticsEnabled
                             ) {
-                                haptic(.light)
+                                HapticManager.impact(.light)
                                 tabsManager.select(tab)
                                 if tab.isMinimizedToDock {
                                     floatingManager.restoreFromDock(tab)
@@ -94,7 +94,7 @@ struct FloatingDockView: View {
                     icon: tileIcon,
                     color: floatingManager.currentTileMode != .none ? .cyan : .white
                 ) {
-                    haptic(.light)
+                    HapticManager.impact(.light)
                     floatingManager.cycleTileMode(for: tabsManager.tabs)
                 }
 
@@ -103,7 +103,7 @@ struct FloatingDockView: View {
                     icon: downloadManager.activeDownloads.isEmpty ? "arrow.down.circle" : "arrow.down.circle.fill",
                     color: downloadManager.activeDownloads.isEmpty ? .white : .green
                 ) {
-                    haptic(.light)
+                    HapticManager.impact(.light)
                     showDownloadHub = true
                 }
 
@@ -112,7 +112,7 @@ struct FloatingDockView: View {
                     icon: floatingManager.globalVirtualCursorEnabled ? "cursorarrow.rays" : "cursorarrow",
                     color: floatingManager.globalVirtualCursorEnabled ? .cyan : .white
                 ) {
-                    haptic(.light)
+                    HapticManager.impact(.light)
                     floatingManager.toggleGlobalVirtualCursor()
                 }
             }
@@ -149,7 +149,7 @@ struct FloatingDockView: View {
             HStack(spacing: 10) {
                 ForEach(tabsManager.tabs.filter { $0.isBubbleMode }) { tab in
                     BubbleTabPill(tab: tab, hapticsEnabled: hapticsEnabled) {
-                        haptic(.light)
+                        HapticManager.impact(.light)
                         floatingManager.restoreFromBubble(tab)
                     }
                 }
@@ -212,11 +212,6 @@ struct FloatingDockView: View {
                 )
         }
         .buttonStyle(.plain)
-    }
-
-    private func haptic(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
-        guard hapticsEnabled else { return }
-        UIImpactFeedbackGenerator(style: style).impactOccurred()
     }
 }
 
@@ -374,7 +369,7 @@ private struct DownloadHubView: View {
                 ToolbarItem(placement: .navigationBarLeading) {
                     if !downloadManager.completedDownloads.isEmpty {
                         Button("Xóa hết") {
-                            haptic(.medium)
+                            HapticManager.impact(.medium)
                             downloadManager.clearAll()
                         }
                         .foregroundColor(.red.opacity(0.8))
@@ -383,11 +378,6 @@ private struct DownloadHubView: View {
             }
         }
         .preferredColorScheme(.dark)
-    }
-
-    private func haptic(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
-        guard hapticsEnabled else { return }
-        UIImpactFeedbackGenerator(style: style).impactOccurred()
     }
 }
 
@@ -541,7 +531,7 @@ private struct FloatingTabListView: View {
                 List {
                     ForEach(tabsManager.tabs) { tab in
                         Button(action: {
-                            haptic(.light)
+                            HapticManager.impact(.light)
                             tabsManager.select(tab)
                             if tab.isMinimizedToDock {
                                 floatingManager.restoreFromDock(tab)
@@ -582,7 +572,7 @@ private struct FloatingTabListView: View {
                     .onDelete { indexSet in
                         for index in indexSet {
                             let tab = tabsManager.tabs[index]
-                            haptic(.medium)
+                            HapticManager.impact(.medium)
                             tabsManager.close(tab)
                         }
                     }
@@ -599,10 +589,5 @@ private struct FloatingTabListView: View {
             }
         }
         .preferredColorScheme(.dark)
-    }
-
-    private func haptic(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
-        guard hapticsEnabled else { return }
-        UIImpactFeedbackGenerator(style: style).impactOccurred()
     }
 }
