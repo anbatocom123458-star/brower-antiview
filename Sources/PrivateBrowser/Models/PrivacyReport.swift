@@ -37,27 +37,35 @@ final class PrivacyReport: ObservableObject {
     }
 
     func incrementBlockedTracker() {
-        blockedTrackers += 1
-        totalRequests += 1
-        save()
+        DispatchQueue.main.async {
+            self.blockedTrackers += 1
+            self.totalRequests += 1
+            self.save()
+        }
     }
 
     func incrementBlockedAd() {
-        blockedAds += 1
-        totalRequests += 1
-        save()
+        DispatchQueue.main.async {
+            self.blockedAds += 1
+            self.totalRequests += 1
+            self.save()
+        }
     }
 
     func incrementRequest() {
-        totalRequests += 1
-        save()
+        DispatchQueue.main.async {
+            self.totalRequests += 1
+            self.save()
+        }
     }
 
     func reset() {
-        blockedTrackers = 0
-        blockedAds = 0
-        totalRequests = 0
-        save()
+        DispatchQueue.main.async {
+            self.blockedTrackers = 0
+            self.blockedAds = 0
+            self.totalRequests = 0
+            self.save()
+        }
     }
 
     private func save() {

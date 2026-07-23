@@ -68,7 +68,9 @@ enum ContentBlocker {
                 queue.sync {
                     isCompiling = false
                     if let error {
+                        #if DEBUG
                         print("⚠️ Không thể biên dịch bộ chặn quảng cáo: \(error.localizedDescription)")
+                        #endif
                     }
                     cachedRuleList = ruleList
                     let handlers = pendingHandlers

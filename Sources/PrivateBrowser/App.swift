@@ -28,7 +28,12 @@ struct PrivateBrowserApp: App {
             SettingsKey.searchEngine: SearchEngine.duckduckgo.rawValue,
             SettingsKey.restoreSession: true,
             SettingsKey.developerToolsEnabled: true,
-            SettingsKey.biometricLockPrivateTabs: false
+            SettingsKey.biometricLockPrivateTabs: false,
+            SettingsKey.httpsOnlyMode: false,
+            SettingsKey.nightMode: false,
+            SettingsKey.showPrivacyGrade: true,
+            SettingsKey.clipboardGuard: true,
+            SettingsKey.doNotTrackHeader: true
         ])
     }
 }

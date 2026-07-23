@@ -45,7 +45,11 @@ final class FloatingWindowManager: ObservableObject {
     // MARK: - Screen Boundary Helpers
 
     var screenBounds: CGRect {
-        UIScreen.main.bounds
+        if let scene = UIApplication.shared.connectedScenes.first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene,
+           let window = scene.windows.first {
+            return window.bounds
+        }
+        return UIScreen.main.bounds
     }
 
     var minPositionY: CGFloat { 0 }

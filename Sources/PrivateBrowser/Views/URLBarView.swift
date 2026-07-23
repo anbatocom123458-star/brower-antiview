@@ -4,9 +4,11 @@ import SwiftUI
 struct URLBarView: View {
     @ObservedObject var controller: BrowserController
     @ObservedObject var privacyReport = PrivacyReport.shared
+    @ObservedObject var privacyGrade = PrivacyGradeManager.shared
     @Binding var editingText: String
     @FocusState.Binding var isFocused: Bool
     var onSubmit: () -> Void
+    var onLockTap: (() -> Void)?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -14,10 +16,13 @@ struct URLBarView: View {
                 .frame(height: 2)
 
             HStack(spacing: 10) {
-                Image(systemName: controller.isSecure ? "lock.shield.fill" : "lock.open.fill")
-                    .foregroundColor(controller.isSecure ? .green.opacity(0.85) : .orange.opacity(0.85))
-                    .font(.system(size: 14))
-                    .accessibilityHidden(true)
+                Button(action: { onLockTap?() }) {
+                    Image(systemName: controller.isSecure ? "lock.shield.fill" : "lock.open.fill")
+                        .foregroundColor(controller.isSecure ? .green.opacity(0.85) : .orange.opacity(0.85))
+                        .font(.system(size: 14))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(controller.isSecure ? "Trang an toàn" : "Trang không an toàn")
 
                 TextField("Nhập URL hoặc tìm kiếm...", text: $editingText)
                     .font(.system(size: 15, weight: .medium, design: .rounded))

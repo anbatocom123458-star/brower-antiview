@@ -28,4 +28,12 @@ enum SettingsKey {
 
     // MARK: - v3.4 Biometric Lock
     static let biometricLockPrivateTabs = "settings.biometricLockPrivateTabs"
+
+    // MARK: - v4.1
+    static let httpsOnlyMode = "settings.httpsOnlyMode"
+    static let nightMode = "settings.nightMode"
+    static let cookieClearInterval = "settings.cookieClearInterval"
+    static let doNotTrackHeader = "settings.doNotTrackHeader"
+    static let showPrivacyGrade = "settings.showPrivacyGrade"
+    static let clipboardGuard = "settings.clipboardGuard"
 }

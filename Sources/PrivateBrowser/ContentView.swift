@@ -3,8 +3,8 @@ import UIKit
 
 /// Màn hình chính: thanh địa chỉ + trình duyệt + thanh công cụ + menu riêng + đa tab.
 ///
-/// v3.4: Thêm Biometric Lock cho tab riêng tư, Session Restore tự động,
-/// và BlurOverlay khi chưa xác thực.
+/// v4.1: Thêm Find on Page, Bookmark, Quick Settings, Night Mode, Privacy Grade,
+/// Storage Stats, Site Info, và nhiều tính năng mới.
 struct ContentView: View {
     @StateObject private var tabsManager = TabsManager()
     @StateObject private var zoomManager = ZoomManager()
@@ -12,6 +12,11 @@ struct ContentView: View {
     @StateObject private var downloadManager = DownloadManager.shared
     @StateObject private var floatingManager = FloatingWindowManager()
     @StateObject private var biometricAuth = BiometricAuthManager.shared
+    @StateObject private var findManager = FindInPageManager.shared
+    @StateObject private var bookmarkManager = BookmarkManager.shared
+    @StateObject private var nightMode = NightModeManager.shared
+    @StateObject private var storageMonitor = StorageMonitor.shared
+    @StateObject private var privacyGrade = PrivacyGradeManager.shared
 
     @AppStorage(SettingsKey.blockWebRTC) private var blockWebRTC = true
     @AppStorage(SettingsKey.blockIframe) private var blockIframe = true
@@ -24,6 +29,7 @@ struct ContentView: View {
     @AppStorage(SettingsKey.restoreSession) private var restoreSession = true
     @AppStorage(SettingsKey.developerToolsEnabled) private var developerToolsEnabled = true
     @AppStorage(SettingsKey.biometricLockPrivateTabs) private var biometricLockPrivateTabs = false
+    @AppStorage(SettingsKey.showPrivacyGrade) private var showPrivacyGrade = true
 
     @Environment(\.scenePhase) private var scenePhase
 
@@ -43,6 +49,10 @@ struct ContentView: View {
     @State private var isScreenCaptured = false
     @State private var hasRestoredSession = false
     @State private var showPrivateBlurOverlay = false
+    @State private var showFindInPage = false
+    @State private var showBookmarkList = false
+    @State private var showQuickSettings = false
+    @State private var showSiteInfo = false
 
     private var activeController: BrowserController { tabsManager.activeTab.controller }
     private var isActivePrivate: Bool { activeController.isPrivateMode }
@@ -67,7 +77,11 @@ struct ContentView: View {
                     controller: activeController,
                     editingText: $editingText,
                     isFocused: $isURLFieldFocused,
-                    onSubmit: submitURL
+                    onSubmit: submitURL,
+                    onLockTap: {
+                        isURLFieldFocused = false
+                        showSiteInfo = true
+                    }
                 )
 
                 ZStack {
@@ -151,7 +165,19 @@ struct ContentView: View {
                     onOpenDeveloperTools: {
                         withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) { showDeveloperTools = true }
                     },
-                    onPanicClear: { performPanicClear() }
+                    onPanicClear: { performPanicClear() },
+                    onFindInPage: {
+                        isURLFieldFocused = false
+                        showFindInPage = true
+                    },
+                    onBookmark: {
+                        isURLFieldFocused = false
+                        bookmarkManager.toggleBookmark(title: activeController.pageTitle, url: activeController.urlString)
+                    },
+                    onQuickSettings: {
+                        isURLFieldFocused = false
+                        showQuickSettings = true
+                    }
                 )
             }
 
@@ -163,6 +189,33 @@ struct ContentView: View {
             if showDownloadPanel {
                 DownloadPanelView(downloadManager: downloadManager, isPresented: $showDownloadPanel)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+
+            if showQuickSettings {
+                VStack {
+                    Spacer()
+                    QuickSettingsPanel(isPresented: $showQuickSettings)
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 80)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+            }
+
+            // Night mode overlay
+            NightModeOverlay()
+
+            // Find in page
+            if showFindInPage {
+                VStack {
+                    Spacer()
+                    FindInPageView(
+                        findManager: findManager,
+                        webView: activeController.webView,
+                        isPresented: $showFindInPage
+                    )
+                    .padding(.bottom, 80)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
             }
 
             if isScreenCaptured {
@@ -259,6 +312,17 @@ struct ContentView: View {
         }
         .sheet(isPresented: $showDeveloperTools) {
             DeveloperToolsView(controller: activeController)
+        }
+        .sheet(isPresented: $showBookmarkList) {
+            BookmarkListView(tabsManager: tabsManager, isPresented: $showBookmarkList)
+        }
+        .sheet(isPresented: $showSiteInfo) {
+            SiteInfoView(
+                url: activeController.urlString,
+                isSecure: activeController.isSecure,
+                trackerCount: privacyGrade.trackersBlocked,
+                isPresented: $showSiteInfo
+            )
         }
         .fullScreenCover(isPresented: $showTabGrid) {
             TabGridView(

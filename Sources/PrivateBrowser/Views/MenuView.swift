@@ -18,6 +18,10 @@ struct MenuView: View {
     @AppStorage(SettingsKey.userscriptsEnabled) private var userscriptsEnabled = true
     @AppStorage(SettingsKey.restoreSession) private var restoreSession = true
     @AppStorage(SettingsKey.developerToolsEnabled) private var developerToolsEnabled = true
+    @AppStorage(SettingsKey.httpsOnlyMode) private var httpsOnlyMode = false
+    @AppStorage(SettingsKey.showPrivacyGrade) private var showPrivacyGrade = true
+    @AppStorage(SettingsKey.clipboardGuard) private var clipboardGuardEnabled = true
+    @AppStorage(SettingsKey.doNotTrackHeader) private var doNotTrackHeader = true
 
     @ObservedObject private var brightnessManager = BrightnessManager.shared
 
@@ -89,6 +93,18 @@ struct MenuView: View {
                         }
                         Toggle(isOn: $blockAds) {
                             SettingRow(icon: "shield.slash", tint: .cyan, title: "Chặn quảng cáo & trình theo dõi", subtitle: "Chặn ở tầng network — nhẹ và hiệu quả hơn JS")
+                        }
+                        Toggle(isOn: $httpsOnlyMode) {
+                            SettingRow(icon: "lock.shield", tint: .green, title: "HTTPS-Only Mode", subtitle: "Tự chuyển sang HTTPS — không dùng HTTP")
+                        }
+                        Toggle(isOn: $doNotTrackHeader) {
+                            SettingRow(icon: "eye.slash", tint: .teal, title: "Gửi Do Not Track", subtitle: "Yêu cầu trang web không theo dõi bạn")
+                        }
+                        Toggle(isOn: $clipboardGuardEnabled) {
+                            SettingRow(icon: "doc.on.clipboard", tint: .yellow, title: "Bảo vệ Clipboard", subtitle: "Tự xóa URL sao chép sau 30 giây")
+                        }
+                        Toggle(isOn: $showPrivacyGrade) {
+                            SettingRow(icon: "star.circle", tint: .mint, title: "Hiện Privacy Grade", subtitle: "Đánh giá A-F mức riêng tư trên thanh URL")
                         }
                     } header: {
                         Text("Bảo mật & Riêng tư")

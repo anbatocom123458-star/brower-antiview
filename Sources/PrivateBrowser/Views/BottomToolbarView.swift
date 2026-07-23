@@ -17,27 +17,30 @@ struct BottomToolbarView: View {
     var onOpenDownloads: () -> Void = {}
     var onOpenDeveloperTools: () -> Void = {}
     var onPanicClear: () -> Void = {}
+    var onFindInPage: () -> Void = {}
+    var onBookmark: () -> Void = {}
+    var onQuickSettings: () -> Void = {}
 
     var body: some View {
         AdaptiveGlassEffectContainer(spacing: 8) {
             HStack(spacing: 0) {
                 ToolbarButton(icon: "arrow.left", isEnabled: controller.canGoBack, action: {
-                    haptic(.light)
+                    HapticManager.impact(.light)
                     onBack()
                 })
 
                 ToolbarButton(icon: "arrow.right", isEnabled: controller.canGoForward, action: {
-                    haptic(.light)
+                    HapticManager.impact(.light)
                     onForward()
                 })
 
                 ToolbarButton(icon: controller.isLoading ? "xmark" : "arrow.clockwise", action: {
-                    haptic(.light)
+                    HapticManager.impact(.light)
                     onReloadOrStop()
                 })
 
                 Button(action: {
-                    haptic(.medium)
+                    HapticManager.impact(.medium)
                     onOpenTabs()
                 }) {
                     TabCountBadge(count: tabCount)
@@ -45,7 +48,7 @@ struct BottomToolbarView: View {
                 }
 
                 Button(action: {
-                    haptic(.light)
+                    HapticManager.impact(.light)
                     onToggleZoom()
                 }) {
                     VStack(spacing: 1) {
@@ -59,7 +62,7 @@ struct BottomToolbarView: View {
                 }
 
                 Button(action: {
-                    haptic(.light)
+                    HapticManager.impact(.light)
                     onOpenDownloads()
                 }) {
                     Image(systemName: "arrow.down.circle")
@@ -69,7 +72,7 @@ struct BottomToolbarView: View {
                 }
 
                 Button(action: {
-                    haptic(.light)
+                    HapticManager.impact(.light)
                     onOpenDeveloperTools()
                 }) {
                     Image(systemName: "wrench.and.screwdriver")
@@ -80,17 +83,17 @@ struct BottomToolbarView: View {
 
                 // v4.0 Panic Clear Button
                 Button(action: {
-                    haptic(.heavy)
+                    HapticManager.impact(.heavy)
                     onPanicClear()
                 }) {
                     Image(systemName: "bolt.fill")
-                        .font(.system(size: 18, weight: .bold))
+                        .font(.system(size: 16, weight: .bold))
                         .foregroundColor(.red.opacity(0.9))
                         .frame(maxWidth: .infinity)
                 }
 
                 Button(action: {
-                    haptic(.medium)
+                    HapticManager.impact(.medium)
                     onOpenMenu()
                 }) {
                     Image(systemName: "line.3.horizontal")
@@ -104,11 +107,6 @@ struct BottomToolbarView: View {
         }
         .padding(.horizontal, 10)
         .padding(.bottom, 6)
-    }
-
-    private func haptic(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
-        guard hapticsEnabled else { return }
-        UIImpactFeedbackGenerator(style: style).impactOccurred()
     }
 }
 

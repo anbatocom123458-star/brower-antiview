@@ -25,4 +25,24 @@ enum AppTheme {
     static let panel = Color(hex: "1A1A2E")
     static let accentGradient: [Color] = [.cyan, .blue, .purple]
     static let accent = Color.cyan
+    static let privatePurple = Color.purple
+    static let dangerRed = Color.red
+    static let successGreen = Color.green
+    static let warningOrange = Color.orange
+    static let mutedGray = Color.white.opacity(0.4)
+    static let subtleWhite = Color.white.opacity(0.08)
+    static let divider = Color.white.opacity(0.1)
+
+    static func glassBackground(cornerRadius: CGFloat = 20) -> some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .fill(.ultraThinMaterial)
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .fill(Color.black.opacity(0.25))
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .fill(LinearGradient(colors: [Color.white.opacity(0.12), Color.clear], startPoint: .top, endPoint: .bottom))
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .stroke(LinearGradient(colors: [Color.white.opacity(0.2), Color.white.opacity(0.05)], startPoint: .top, endPoint: .bottom), lineWidth: 0.5)
+        }
+    }
 }
