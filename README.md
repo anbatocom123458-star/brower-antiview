@@ -9,6 +9,7 @@
 ![Build Status](https://img.shields.io/badge/Build-Passing-brightgreen)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 ![Xcode Needed](https://img.shields.io/badge/Xcode-Not%20Required-red)
+![Version](https://img.shields.io/badge/Version-3.3-brightgreen)
 
 Trình duyệt web cao cấp kết hợp **Hệ thống bảo vệ quyền riêng tư đa lớp**.
 *Không cần máy Mac, không cần Xcode, không tốn $99/năm cho Apple Developer.*
@@ -17,6 +18,14 @@ Trình duyệt web cao cấp kết hợp **Hệ thống bảo vệ quyền riên
 
 </div>
 
+
+## 🧊 Có gì mới trong phiên bản 3.3:
+- **Điều chỉnh độ sáng (Brightness Control)**: Trượt để tăng/giảm độ sáng màn hình trực tiếp từ app. Tiết kiệm pin, thoải mái sử dụng trong bóng tối. Tự lưu giá trị đã chọn và khôi phục khi mở lại app.
+- **Developer Tools (F12)**: Xem thông tin chi tiết về trang web giống F12 trên máy tính — bao gồm: thông tin trang (URL, title, meta tags), HTML source code, console log lỗi JavaScript, cookies & storage info. Truy cập qua nút wrench trên thanh công cụ hoặc từ Menu.
+- **Khôi phục phiên (Session Restore)**: Tự động lưu trạng thái tab và khôi phục khi mở lại app — không mất dữ liệu giữa các phiên. Có thể tắt trong cài đặt.
+- **Lưu trạng thái tự động**: Toàn bộ trạng thái tab được lưu khi app chuyển sang nền, đảm bảo dữ liệu không bị mất.
+- **Nâng cấp giao diện hiện đại**: Thanh công cụ dưới cùng thêm nút Developer Tools, menu cài đặt thêm phần điều chỉnh độ sáng và các tính năng mới.
+- **Cải tiến ổn định**: Xử lý lỗi tốt hơn, tối ưu hiệu năng, mượt mà hơn khi chuyển tab.
 
 ## 🧊 Có gì mới trong phiên bản 3.2:
 - **Tải xuống File (Download Manager)**: Tải file trực tiếp từ trình duyệt — hỗ trợ mọi loại file. File tải về chế độ riêng tư tự động xóa khi hoàn thành. Truy cập qua nút ↓ trên thanh công cụ.

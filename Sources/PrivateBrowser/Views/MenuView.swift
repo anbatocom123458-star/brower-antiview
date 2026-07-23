@@ -16,6 +16,10 @@ struct MenuView: View {
     @AppStorage(SettingsKey.confirmClearData) private var confirmClearData = true
     @AppStorage(SettingsKey.windowMode) private var windowMode = false
     @AppStorage(SettingsKey.userscriptsEnabled) private var userscriptsEnabled = true
+    @AppStorage(SettingsKey.restoreSession) private var restoreSession = true
+    @AppStorage(SettingsKey.developerToolsEnabled) private var developerToolsEnabled = true
+
+    @ObservedObject private var brightnessManager = BrightnessManager.shared
 
     @State private var showClearConfirm = false
     @State private var showClearedToast = false
@@ -27,6 +31,7 @@ struct MenuView: View {
     var onOpenPrivateTab: () -> Void
     var onOpenUserscriptEditor: (() -> Void)?
     var onToggleWindowMode: (() -> Void)?
+    var onOpenDeveloperTools: (() -> Void)?
     var currentWindowMode: Bool = false
 
     private var searchEngine: SearchEngine {
@@ -100,8 +105,42 @@ struct MenuView: View {
                         Toggle(isOn: $autoClearOnBackground) {
                             SettingRow(icon: "eye.slash", tint: .indigo, title: "Tự động xoá dữ liệu khi rời app", subtitle: "Xoá ngay khi chuyển sang app khác/vào nền — ẩn mình tối đa")
                         }
+                        Toggle(isOn: $restoreSession) {
+                            SettingRow(icon: "arrow.clockwise", tint: .teal, title: "Khôi phục phiên trước", subtitle: "Tự mở lại tab đã dùng khi khởi động app")
+                        }
                     } header: {
                         Text("Trải nghiệm")
+                    }
+                    .listRowBackground(Color.white.opacity(0.04))
+
+                    Section {
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                SettingRow(icon: "sun.max.fill", tint: .yellow, title: "Độ sáng màn hình")
+                                Spacer()
+                                Text("\(Int(brightnessManager.brightnessPercent))%")
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundColor(.yellow)
+                            }
+                            HStack(spacing: 12) {
+                                Image(systemName: "sun.min.fill")
+                                    .font(.system(size: 10))
+                                    .foregroundColor(.yellow.opacity(0.5))
+                                Slider(value: Binding(
+                                    get: { brightnessManager.brightness },
+                                    set: { brightnessManager.brightness = $0 }
+                                ), in: 0.02...1.0)
+                                .tint(.yellow)
+                                Image(systemName: "sun.max.fill")
+                                    .font(.system(size: 14))
+                                    .foregroundColor(.yellow.opacity(0.8))
+                            }
+                            Toggle(isOn: $brightnessManager.isAutoBrightness) {
+                                SettingRow(icon: "autostartstop", tint: .blue, title: "Tự động điều chỉnh", subtitle: "Hệ thống quản lý độ sáng")
+                            }
+                        }
+                    } header: {
+                        Text("Độ sáng")
                     }
                     .listRowBackground(Color.white.opacity(0.04))
 
@@ -125,6 +164,20 @@ struct MenuView: View {
                             set: { _ in onToggleWindowMode?() }
                         )) {
                             SettingRow(icon: "macwindow", tint: .orange, title: "Chế độ Cửa sổ", subtitle: "Hiển thị tab dưới dạng các cửa sổ nhỏ — giống desktop")
+                        }
+
+                        Toggle(isOn: $developerToolsEnabled) {
+                            SettingRow(icon: "wrench.and.screwdriver", tint: .purple, title: "Developer Tools (F12)", subtitle: "Xem thông tin trang, source code, console, storage")
+                        }
+                        if developerToolsEnabled {
+                            Button(action: {
+                                dismiss()
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                                    onOpenDeveloperTools?()
+                                }
+                            }) {
+                                SettingRow(icon: "terminal", tint: .green, title: "Mở Developer Tools", subtitle: "Xem source, console, cookies, storage")
+                            }
                         }
                     } header: {
                         Text("Tiện ích mở rộng")

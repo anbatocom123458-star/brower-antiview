@@ -16,9 +16,14 @@ import Combine
 final class BrowserTab: ObservableObject, Identifiable {
     let id = UUID()
     @Published var controller: BrowserController
-    /// Thời điểm tab được tạo — dùng để sắp thứ tự ổn định trong lưới, không phụ
-    /// thuộc thứ tự có thể đổi khi mảng trong TabsManager được thao tác.
     let createdAt = Date()
+
+    // Floating window state
+    @Published var isFloating: Bool = false
+    @Published var floatingPosition: CGPoint = .zero
+    @Published var floatingSize: CGSize = CGSize(width: 320, height: 480)
+    @Published var isMinimizedToDock: Bool = false
+    @Published var windowOrder: Int = 0
 
     var isPrivateMode: Bool { controller.isPrivateMode }
 

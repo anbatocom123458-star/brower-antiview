@@ -15,4 +15,9 @@ enum SettingsKey {
     static let windowMode = "settings.windowMode"
     static let autoDeletePrivateDownloads = "settings.autoDeletePrivateDownloads"
     static let userscriptsEnabled = "settings.userscriptsEnabled"
+
+    // MARK: - New Keys (v3.3)
+    static let restoreSession = "settings.restoreSession"
+    static let developerToolsEnabled = "settings.developerToolsEnabled"
+    static let brightnessAuto = "settings.brightnessAuto"
 }

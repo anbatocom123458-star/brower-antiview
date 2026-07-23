@@ -22,12 +22,13 @@ import UIKit
 /// nhận cảm ứng. Điều này giữ đúng trạng thái cuộn/form đang nhập của các tab nền,
 /// giống hành vi tab thật của Safari, đổi lại tốn RAM hơn theo số tab đang mở.
 ///
-/// v3.2: Thêm Userscript Manager, Download Manager, Window Mode, tách tab thường/riêng tư.
+/// v3.3: Thêm Brightness Control, Developer Tools (F12), Session Restore, Modern UI.
 struct ContentView: View {
     @StateObject private var tabsManager = TabsManager()
     @StateObject private var zoomManager = ZoomManager()
     @StateObject private var userscriptManager = UserscriptManager.shared
     @StateObject private var downloadManager = DownloadManager.shared
+    @StateObject private var floatingManager = FloatingWindowManager()
 
     @AppStorage(SettingsKey.blockWebRTC) private var blockWebRTC = true
     @AppStorage(SettingsKey.blockIframe) private var blockIframe = true
@@ -37,6 +38,8 @@ struct ContentView: View {
     @AppStorage(SettingsKey.autoClearOnBackground) private var autoClearOnBackground = false
     @AppStorage(SettingsKey.windowMode) private var windowMode = false
     @AppStorage(SettingsKey.userscriptsEnabled) private var userscriptsEnabled = true
+    @AppStorage(SettingsKey.restoreSession) private var restoreSession = true
+    @AppStorage(SettingsKey.developerToolsEnabled) private var developerToolsEnabled = true
 
     @Environment(\.scenePhase) private var scenePhase
 
@@ -50,6 +53,8 @@ struct ContentView: View {
     @State private var showDebugConsole = false
     @State private var showUserscriptEditor = false
     @State private var showDownloadPanel = false
+    @State private var showFloatingMode = false
+    @State private var showDeveloperTools = false
     @State private var isBackgrounded = false
     @State private var isScreenCaptured = false
 
@@ -137,6 +142,9 @@ struct ContentView: View {
                     onOpenMenu: { showMenu = true },
                     onOpenDownloads: {
                         withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) { showDownloadPanel = true }
+                    },
+                    onOpenDeveloperTools: {
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) { showDeveloperTools = true }
                     }
                 )
             }
@@ -173,8 +181,12 @@ struct ContentView: View {
             withAnimation(.easeInOut(duration: 0.15)) {
                 isBackgrounded = (newPhase != .active)
             }
-            if newPhase == .background && autoClearOnBackground {
-                PrivacyManager.clearAllData()
+            if newPhase == .background {
+                // Lưu trạng thái phiên trước khi chuyển sang nền
+                SessionStateManager.shared.saveSession(tabsManager: tabsManager)
+                if autoClearOnBackground {
+                    PrivacyManager.clearAllData()
+                }
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: UIScreen.capturedDidChangeNotification)) { _ in
@@ -213,6 +225,9 @@ struct ContentView: View {
                 onToggleWindowMode: {
                     windowMode.toggle()
                 },
+                onOpenDeveloperTools: {
+                    showDeveloperTools = true
+                },
                 currentWindowMode: windowMode
             )
         }
@@ -224,6 +239,9 @@ struct ContentView: View {
         }
         .sheet(isPresented: $showUserscriptEditor) {
             UserscriptEditorView(userscriptManager: userscriptManager)
+        }
+        .sheet(isPresented: $showDeveloperTools) {
+            DeveloperToolsView(controller: activeController)
         }
         .fullScreenCover(isPresented: $showTabGrid) {
             TabGridView(

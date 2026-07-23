@@ -14,9 +14,12 @@ struct AboutView: View {
         ("arrow.triangle.2.circlepath", "Phiên mới & tự xoá khi rời app", "Một chạm để bắt đầu lại sạch sẽ, hoặc tự xoá dữ liệu khi chuyển sang app khác."),
         ("sparkles", "Liquid Glass trên iOS 26", "Giao diện kính lỏng mới của Apple, tự thích ứng và vẫn đẹp trên iOS 16 trở lên."),
         ("magnifyingglass", "Zoom linh hoạt 25%–200%", "Điều chỉnh cỡ chữ/trang bằng thanh trượt trực quan, mượt mà."),
+        ("sun.max.fill", "Điều chỉnh độ sáng", "Trượt để tăng/giảm độ sáng màn hình trực tiếp từ app — tiết kiệm pin."),
         ("arrow.down.circle", "Tải xuống file", "Tải file trực tiếp từ trình duyệt. File ở chế độ riêng tư tự động xóa khi tải xong."),
         ("chevron.left.forwardslash.chevron.right", "Userscript Manager", "Dán code JS tự chạy trên trang — giống Tampermonkey trên iOS."),
         ("macwindow", "Chế độ Cửa sổ", "Quản lý tab dưới dạng các cửa sổ nhỏ — giống trải nghiệm desktop."),
+        ("wrench.and.screwdriver", "Developer Tools (F12)", "Xem source code, console, cookies, storage — giống F12 trên máy tính."),
+        ("arrow.clockwise", "Khôi phục phiên", "Tự mở lại tab đã dùng khi khởi động app — không mất dữ liệu."),
     ]
 
     var body: some View {
